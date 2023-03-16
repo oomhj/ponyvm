@@ -7,8 +7,8 @@ import java.util.ArrayList;
 public class Bus {
     //8位总线，最大寻址范围0-255
     //内存映射表
-    //section：内存，地址 0-127
-    private byte[] RAM = new byte[128];
+    //section：内存，地址 0-200，0-127放代码，128-200放数据
+    private byte[] RAM = new byte[200];
     //section：TTY 打印机，地址 255
     private byte PrintAddr = (byte) 0xFF;
 

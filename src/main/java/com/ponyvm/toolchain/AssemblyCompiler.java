@@ -12,6 +12,10 @@ public class AssemblyCompiler {
             OpCodes opCode = OpCodes.valueOf(insArray[0]);
             bin[i++] = opCode.getIndex();
             switch (opCode) {
+                case ADD:
+                    break;
+                case CMP:
+                    break;
                 case POP:
                     break;
                 case END:
