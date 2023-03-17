@@ -1,10 +1,5 @@
 package com.ponyvm.vm;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-
 public class CPU {
     int pc = 0;                     // Program counter
     int prevPc;                     // Previous pc
@@ -25,12 +20,10 @@ public class CPU {
 
     public void loadBinaryProgram(byte[] rom) {
         int len = (int) rom.length;                       // Number of instructions
-        program = new Instruction[len/4];   // Instruction array
-        for (int i = 0; i < len; i=i+4) {
-            byte[] ins = new byte[4];
-            int data = (int) ((rom[i] & 0xFF) | ((rom[i+1] & 0xFF) << 8) | ((rom[i+2] & 0xFF) << 16) | ((rom[i+3] & 0xFF) << 24));
-            data = Integer.reverseBytes(data);
-            program[i/4] = new Instruction(data);
+        program = new Instruction[len / 4];   // Instruction array
+        for (int i = 0; i < len; i = i + 4) {
+            int data = (int) ((rom[i + 3] & 0xFF) << 24) + ((rom[i + 2] & 0xFF) << 16) + ((rom[i + 1] & 0xFF) << 8) + ((rom[i] & 0xFF) << 0);
+            program[i / 4] = new Instruction(data);
             memory.storeWord(i, data);
         }
     }
@@ -39,9 +32,14 @@ public class CPU {
      * Executes one instruction given by the Instruction array 'program' at index given by the program counter 'pc'.
      * Uses the opcode field of the instruction to determine which type of instruction it is and call that method.
      */
-    public void executeInstruction() {
+    public boolean executeInstruction() {
         prevPc = pc;
+        if (pc >= program.length) {
+            return true;
+        }
         Instruction inst = program[pc];
+//        打印指令操作码
+//        System.out.println(Integer.toUnsignedString(inst.opcode, 2));
         switch (inst.opcode) {
             // R-type instructions
             case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND
@@ -90,6 +88,7 @@ public class CPU {
                 break;
         }
         reg[0] = 0; // x0 must always be 0
+        return false;
     }
 
     /**
