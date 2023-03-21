@@ -1,2 +1,7 @@
 # ponyvm
-基于栈的8位总线虚拟机，采用PonyISA指令集
+
+JVM分支
+栈虚拟机，实现JVM指令集
+
+部分代码copy自
+https://github.com/guxingke/mini-jvm
