@@ -1,7 +1,7 @@
 package com.ponyvm.vm.instruction.comparisons;
 
 import com.ponyvm.vm.instruction.Instruction;
-import com.ponyvm.vm.jmm.Frame;
+import com.ponyvm.vm.rtda.Frame;
 
 public class IfLtInst implements Instruction {
   public final int offset;

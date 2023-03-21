@@ -4,13 +4,12 @@ import com.ponyvm.vm.instruction.Instruction;
 
 
 import com.ponyvm.vm.interpret.Interpreter;
-import com.ponyvm.vm.jmm.Frame;
-import com.ponyvm.vm.jmm.heap.Heap;
-import com.ponyvm.vm.jmm.heap.Class;
-import com.ponyvm.vm.jmm.heap.Field;
-import com.ponyvm.vm.jmm.heap.Method;
+import com.ponyvm.vm.rtda.Frame;
+import com.ponyvm.vm.rtda.heap.Heap;
+import com.ponyvm.vm.rtda.heap.Class;
+import com.ponyvm.vm.rtda.heap.Field;
+import com.ponyvm.vm.rtda.heap.Method;
 
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 

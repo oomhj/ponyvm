@@ -4,13 +4,13 @@ import com.ponyvm.vm.instruction.Instruction;
 
 
 import com.ponyvm.vm.interpret.Interpreter;
-import com.ponyvm.vm.jmm.Frame;
-import com.ponyvm.vm.jmm.UnionSlot;
-import com.ponyvm.vm.jmm.heap.Heap;
-import com.ponyvm.vm.jmm.heap.Class;
-import com.ponyvm.vm.jmm.heap.Field;
-import com.ponyvm.vm.jmm.heap.Instance;
-import com.ponyvm.vm.jmm.heap.PrimitiveArray;
+import com.ponyvm.vm.rtda.Frame;
+import com.ponyvm.vm.rtda.UnionSlot;
+import com.ponyvm.vm.rtda.heap.Heap;
+import com.ponyvm.vm.rtda.heap.Class;
+import com.ponyvm.vm.rtda.heap.Field;
+import com.ponyvm.vm.rtda.heap.Instance;
+import com.ponyvm.vm.rtda.heap.PrimitiveArray;
 
 public class LdcInst implements Instruction {
   public final String descriptor;

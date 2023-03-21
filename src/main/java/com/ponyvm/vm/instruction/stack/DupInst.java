@@ -1,8 +1,8 @@
 package com.ponyvm.vm.instruction.stack;
 
 import com.ponyvm.vm.instruction.Instruction;
-import com.ponyvm.vm.jmm.Frame;
-import com.ponyvm.vm.jmm.Slot;
+import com.ponyvm.vm.rtda.Frame;
+import com.ponyvm.vm.rtda.Slot;
 
 public class DupInst implements Instruction {
 

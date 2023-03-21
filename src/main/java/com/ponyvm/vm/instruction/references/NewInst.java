@@ -5,12 +5,12 @@ import com.ponyvm.vm.instruction.Instruction;
 
 import com.ponyvm.vm.classloader.ClassLoader;
 import com.ponyvm.vm.interpret.Interpreter;
-import com.ponyvm.vm.jmm.*;
-import com.ponyvm.vm.jmm.heap.Heap;
-import com.ponyvm.vm.jmm.heap.Class;
-import com.ponyvm.vm.jmm.heap.Method;
-import com.ponyvm.vm.jmm.heap.Instance;
-import com.ponyvm.vm.jmm.heap.NativeMethod;
+import com.ponyvm.vm.rtda.*;
+import com.ponyvm.vm.rtda.heap.Heap;
+import com.ponyvm.vm.rtda.heap.Class;
+import com.ponyvm.vm.rtda.heap.Method;
+import com.ponyvm.vm.rtda.heap.Instance;
+import com.ponyvm.vm.rtda.heap.NativeMethod;
 
 public class NewInst implements Instruction {
 

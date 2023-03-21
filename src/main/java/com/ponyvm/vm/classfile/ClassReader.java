@@ -283,7 +283,7 @@ public abstract class ClassReader {
           Instruction[] instructions = readByteCode(byteCode, constantPool);
 
           int exceptionTableLength = is.readUnsignedShort();
-          java.lang.Exception[] exceptions = new java.lang.Exception[exceptionTableLength];
+          Exception[] exceptions = new Exception[exceptionTableLength];
           for (int i1 = 0; i1 < exceptionTableLength; i1++) {
             int etsp = is.readUnsignedShort();
             int etep = is.readUnsignedShort();
@@ -296,7 +296,7 @@ public abstract class ClassReader {
               etClassname = Utils.getClassName(constantPool, ctIdx);
             }
 
-            java.lang.Exception exception = new java.lang.Exception(etsp, etep, ethp, etClassname);
+            Exception exception = new Exception(etsp, etep, ethp, etClassname);
             exceptions[i1] = exception;
           }
           ExceptionTable exceptionTable = new ExceptionTable(exceptions);

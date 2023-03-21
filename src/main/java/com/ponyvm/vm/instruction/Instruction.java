@@ -1,6 +1,6 @@
 package com.ponyvm.vm.instruction;
 
-import com.ponyvm.vm.jmm.Frame;
+import com.ponyvm.vm.rtda.Frame;
 
 public interface Instruction {
 

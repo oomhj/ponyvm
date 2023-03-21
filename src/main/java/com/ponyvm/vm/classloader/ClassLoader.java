@@ -7,12 +7,12 @@ import com.ponyvm.vm.classfile.MethodInfo;
 import com.ponyvm.vm.classfile.attribute.BootstrapMethods;
 import com.ponyvm.vm.classfile.attribute.Code;
 import com.ponyvm.vm.classpath.Entry;
-import com.ponyvm.vm.jmm.heap.Heap;
-import com.ponyvm.vm.jmm.heap.Class;
-import com.ponyvm.vm.jmm.heap.Field;
-import com.ponyvm.vm.jmm.heap.Method;
-import com.ponyvm.vm.jmm.heap.Instance;
-import com.ponyvm.vm.jmm.heap.NativeMethod;
+import com.ponyvm.vm.rtda.heap.Heap;
+import com.ponyvm.vm.rtda.heap.Class;
+import com.ponyvm.vm.rtda.heap.Field;
+import com.ponyvm.vm.rtda.heap.Method;
+import com.ponyvm.vm.rtda.heap.Instance;
+import com.ponyvm.vm.rtda.heap.NativeMethod;
 import com.ponyvm.vm.util.Utils;
 
 import java.util.ArrayList;

@@ -1,9 +1,9 @@
 package com.ponyvm.vm.instruction.loads;
 
 import com.ponyvm.vm.instruction.Instruction;
-import com.ponyvm.vm.jmm.Frame;
-import com.ponyvm.vm.jmm.heap.Instance;
-import com.ponyvm.vm.jmm.heap.InstanceArray;
+import com.ponyvm.vm.rtda.Frame;
+import com.ponyvm.vm.rtda.heap.Instance;
+import com.ponyvm.vm.rtda.heap.InstanceArray;
 
 public class AALoadInst implements Instruction {
 

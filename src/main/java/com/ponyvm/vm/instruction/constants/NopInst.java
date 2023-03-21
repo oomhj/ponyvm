@@ -3,7 +3,7 @@ package com.ponyvm.vm.instruction.constants;
 import com.ponyvm.vm.instruction.Instruction;
 
 
-import com.ponyvm.vm.jmm.Frame;
+import com.ponyvm.vm.rtda.Frame;
 
 /**
  * <p><a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-6.html#jvms-6.5.nop">nop</a></p>

@@ -3,11 +3,11 @@ package com.ponyvm.vm.instruction.references;
 import com.ponyvm.vm.instruction.Instruction;
 
 
-import com.ponyvm.vm.jmm.Frame;
-import com.ponyvm.vm.jmm.heap.Heap;
-import com.ponyvm.vm.jmm.heap.Class;
-import com.ponyvm.vm.jmm.heap.Method;
-import com.ponyvm.vm.jmm.heap.NativeMethod;
+import com.ponyvm.vm.rtda.Frame;
+import com.ponyvm.vm.rtda.heap.Heap;
+import com.ponyvm.vm.rtda.heap.Class;
+import com.ponyvm.vm.rtda.heap.Method;
+import com.ponyvm.vm.rtda.heap.NativeMethod;
 
 import com.ponyvm.vm.util.Utils;
 

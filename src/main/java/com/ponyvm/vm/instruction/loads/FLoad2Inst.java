@@ -3,7 +3,7 @@ package com.ponyvm.vm.instruction.loads;
 import com.ponyvm.vm.instruction.Instruction;
 
 
-import com.ponyvm.vm.jmm.Frame;
+import com.ponyvm.vm.rtda.Frame;
 
 public class FLoad2Inst implements Instruction {
 

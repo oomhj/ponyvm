@@ -1,8 +1,8 @@
 package com.ponyvm.vm.instruction.references;
 
 import com.ponyvm.vm.instruction.Instruction;
-import com.ponyvm.vm.jmm.Frame;
-import com.ponyvm.vm.jmm.heap.ArrayInstance;
+import com.ponyvm.vm.rtda.Frame;
+import com.ponyvm.vm.rtda.heap.ArrayInstance;
 
 public class ArrayLengthInst implements Instruction {
 

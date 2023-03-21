@@ -3,11 +3,11 @@ package com.ponyvm.vm.instruction.references;
 import com.ponyvm.vm.instruction.Instruction;
 
 
-import com.ponyvm.vm.jmm.Frame;
-import com.ponyvm.vm.jmm.Slot;
-import com.ponyvm.vm.jmm.UnionSlot;
-import com.ponyvm.vm.jmm.heap.Field;
-import com.ponyvm.vm.jmm.heap.Instance;
+import com.ponyvm.vm.rtda.Frame;
+import com.ponyvm.vm.rtda.Slot;
+import com.ponyvm.vm.rtda.UnionSlot;
+import com.ponyvm.vm.rtda.heap.Field;
+import com.ponyvm.vm.rtda.heap.Instance;
 
 public class PutFieldInst implements Instruction {
   public final String clazz;

@@ -3,7 +3,7 @@ package com.ponyvm.vm.instruction.control;
 import com.ponyvm.vm.instruction.Instruction;
 
 
-import com.ponyvm.vm.jmm.Frame;
+import com.ponyvm.vm.rtda.Frame;
 
 import java.util.Map;
 
