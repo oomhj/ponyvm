@@ -5,10 +5,13 @@ import com.ponyvm.peripheral.TTY;
 import java.util.ArrayList;
 
 public class Bus {
-    //8位总线，最大寻址范围0-255
+    //32位总线，最大寻址范围4G
     //内存映射表
-    //section：内存，地址 0-200，0-127放代码，128-200放数据
-    private byte[] RAM = new byte[200];
+    //section：IRAM,地址：0x00010000
+
+
+
+    private byte[] RAM = new byte[73728];
     //section：TTY 打印机，地址 255
     private byte PrintAddr = (byte) 0xFF;
 
@@ -28,10 +31,10 @@ public class Bus {
     }
 
     public void store(byte addr, byte data) {
-        if (addr == PrintAddr) {
-            tty.print(data);
-            return;
-        }
+//        if (addr == PrintAddr) {
+//            tty.print(data);
+//            return;
+//        }
         int index = Byte.toUnsignedInt(addr);
         this.RAM[index] = data;
     }

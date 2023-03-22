@@ -1,9 +1,12 @@
+ 	.file	"loop.c"
+ 	.option nopic
+ 	.text
+ #APP
 	li sp, 0x100000
 	jal main
 	mv a1, x10
 	li a0, 10
 	ecall
-	.text
 sum:
 	addi	sp,sp,-48
 	sw	s0,44(sp)
@@ -34,6 +37,10 @@ sum:
 	lw	s0,44(sp)
 	addi	sp,sp,48
 	jr	ra
+	.size	sum, .-sum
+	.align	1
+	.globl	main
+	.type	main, @function
 main:
 	addi	sp,sp,-48
 	sw	ra,44(sp)
@@ -102,3 +109,5 @@ main:
 	lw	s1,36(sp)
 	addi	sp,sp,48
 	jr	ra
+	.size	main, .-main
+    .ident	"GCC: (crosstool-NG esp-2021r2-patch5) 8.4.0"
