@@ -18,25 +18,20 @@ import java.io.IOException;
 
 public class Main {
     private static final int BYTES_PR_PAGE = 256;    // 64 words
-//    private static final int MEMORY_SIZE = 65536;    // 64KB memory
-    private static final int MEMORY_SIZE = 262144;    // 64KB memory
+    private static final int MEMORY_SIZE = 65536;    // 64KB memory
 
     public static void main(String[] args) throws IOException {
         Memory mem = new Memory(MEMORY_SIZE);
-//        byte[] rom = getInstructions(new File(ClassLoader.getSystemResource("loop.bin").getFile()));
-//        byte[] rom = getESPRom(new File(ClassLoader.getSystemResource("loop1.bin").getFile()));
-        ELFFile elfFile = loadELFFile(new File(ClassLoader.getSystemResource("loop1").getFile()));
-        String elfinfo = elfFile.toString();
-        System.out.println(elfinfo);
-
+        ELFFile elfFile = loadELFFile(new File(ClassLoader.getSystemResource("loop.bin").getFile()));
+//        String elfinfo = elfFile.toString();
+//        System.out.println(elfinfo);
 
         ELFLoader.loadElf(elfFile, mem);
 
-
         CPU cpu = new CPU(mem, elfFile.HEADER.e_entry());
-        boolean end = false;
-        while (!end) {
-            end = cpu.executeInstruction();
+        cpu.poweron();
+        while (!cpu.stop) {
+            cpu.executeInstruction();
         }
     }
 

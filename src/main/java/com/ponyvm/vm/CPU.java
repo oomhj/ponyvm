@@ -5,6 +5,7 @@ public class CPU {
     int prevPc;                     // Previous pc
     int[] reg = new int[32];        // RISC-V registers x0 to x3
     private Memory memory;          // Memory byte array
+    public boolean stop = true;
 
     /**
      * CPU constructor
@@ -14,7 +15,11 @@ public class CPU {
     public CPU(Memory mem, int entryPointAddr) {
         this.pc = entryPointAddr;
         this.memory = mem;                      // Initialize Memory object
-        reg[2] = memory.getMemory().length - 1; // Initialize stack pointer to point at last address. 
+        reg[2] = 0x10000 + memory.getMemory().length - 4; // Initialize stack pointer to point at last address.
+    }
+
+    public void poweron() {
+        this.stop = false;
     }
 
     private Instruction InstructionDecode(int pc) {
@@ -26,13 +31,18 @@ public class CPU {
      * Uses the opcode field of the instruction to determine which type of instruction it is and call that method.
      */
     public boolean executeInstruction() {
-        prevPc = pc;
-        if (pc < 0) {
-            return true;
+        if (this.stop) {
+            return this.stop;
         }
+        prevPc = pc;
         Instruction inst = InstructionDecode(pc);
+        String instAddr = Integer.toUnsignedString(pc, 16);
 //        打印指令操作码
-        System.out.println(Integer.toUnsignedString(pc,16)+":"+ inst.assemblyString);
+        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.assemblyString);
+
+//        if (inst.assemblyString.trim().equals("jal x0 0(x0)")) {
+//            return ;
+//        }
         switch (inst.opcode) {
             // R-type instructions
             case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND
@@ -81,7 +91,7 @@ public class CPU {
                 break;
         }
         reg[0] = 0; // x0 must always be 0
-        return false;
+        return this.stop;
     }
 
     /**
@@ -131,7 +141,7 @@ public class CPU {
                 reg[inst.rd] = reg[inst.rs1] & reg[inst.rs2];
                 break;
         }
-        pc+=4;
+        pc += 4;
     }
 
     /**
@@ -160,7 +170,7 @@ public class CPU {
             default:
                 break;
         }
-        pc+=4;
+        pc += 4;
     }
 
     /**
@@ -204,7 +214,7 @@ public class CPU {
                 }
                 break;
         }
-        pc+=4;
+        pc += 4;
     }
 
     /**
@@ -212,6 +222,10 @@ public class CPU {
      */
     private void iTypeEcall() {
         switch (reg[10]) {
+            case 0:     // print_int
+                System.out.print(reg[11]);
+                this.stop = true;
+                break;
             case 1:     // print_int
                 System.out.print(reg[11]);
                 break;
@@ -235,7 +249,7 @@ public class CPU {
                 System.out.println("ECALL " + reg[10] + " not implemented");
                 break;
         }
-        pc+=4;
+        pc += 4;
     }
 
     /**
@@ -255,7 +269,7 @@ public class CPU {
                 memory.storeWord(addr, reg[inst.rs2]);
                 break;
         }
-        pc+=4;
+        pc += 4;
     }
 
     /**
