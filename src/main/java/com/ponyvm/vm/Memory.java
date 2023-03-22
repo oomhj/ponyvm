@@ -2,6 +2,7 @@
 package com.ponyvm.vm;
 
 public class /**/Memory {
+    private int SRAM_OFFSET = 0x01_0000;
     private byte[] memory;
 
     /**
@@ -14,17 +15,20 @@ public class /**/Memory {
 
     // Stores a single byte in the memory array
     void storeByte(int addr, int data) {
+        addr = addr - SRAM_OFFSET;
         memory[addr] = (byte) (data & 0xFF);
     }
 
     // Stores a half word in the memory array
     void storeHalfWord(int addr, short data) {
+        addr = addr - SRAM_OFFSET;
         memory[addr] = (byte) ((data & 0x00FF));
         memory[addr + 1] = (byte) ((data & 0xFF00) >>> 8);
     }
 
     // Stores a word in the memory array
     void storeWord(int addr, int data) {
+        addr = addr - SRAM_OFFSET;
         memory[addr] = (byte) ((data & 0x000000FF));
         memory[addr + 1] = (byte) ((data & 0x0000FF00) >>> 8);
         memory[addr + 2] = (byte) ((data & 0x00FF0000) >>> 16);
@@ -33,6 +37,7 @@ public class /**/Memory {
 
     // Returns the byte in the memory given by the address.
     byte getByte(int addr) {
+        addr = addr - SRAM_OFFSET;
         return memory[addr];
     }
 
@@ -48,6 +53,7 @@ public class /**/Memory {
 
     // Returns string starting at the address given and ends when next memory address is zero.
     String getString(int addr) {
+        addr = addr - SRAM_OFFSET;
         String returnValue = "";
         int i = 0;
         while (memory[addr + i] != 0) {

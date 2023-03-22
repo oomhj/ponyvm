@@ -8,6 +8,7 @@ package com.ponyvm;
 
 import com.ponyvm.peripheral.ELFFile;
 import com.ponyvm.vm.CPU;
+import com.ponyvm.vm.ELFLoader;
 import com.ponyvm.vm.Memory;
 
 import java.io.DataInputStream;
@@ -17,7 +18,8 @@ import java.io.IOException;
 
 public class Main {
     private static final int BYTES_PR_PAGE = 256;    // 64 words
-    private static final int MEMORY_SIZE = 10485760;    // 10MiB memory
+//    private static final int MEMORY_SIZE = 65536;    // 64KB memory
+    private static final int MEMORY_SIZE = 262144;    // 64KB memory
 
     public static void main(String[] args) throws IOException {
         Memory mem = new Memory(MEMORY_SIZE);
@@ -26,12 +28,16 @@ public class Main {
         ELFFile elfFile = loadELFFile(new File(ClassLoader.getSystemResource("loop1").getFile()));
         String elfinfo = elfFile.toString();
         System.out.println(elfinfo);
-//        CPU cpu = new CPU(mem);
-//        cpu.loadBinaryProgram(rom);
-//        boolean end = false;
-//        while (!end) {
-//            end = cpu.executeInstruction();
-//        }
+
+
+        ELFLoader.loadElf(elfFile, mem);
+
+
+        CPU cpu = new CPU(mem, elfFile.HEADER.e_entry());
+        boolean end = false;
+        while (!end) {
+            end = cpu.executeInstruction();
+        }
     }
 
     public static byte[] getESPRom(File f) throws IOException {

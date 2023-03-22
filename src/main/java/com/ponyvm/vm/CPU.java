@@ -3,8 +3,7 @@ package com.ponyvm.vm;
 public class CPU {
     int pc = 0;                     // Program counter
     int prevPc;                     // Previous pc
-    int[] reg = new int[32];        // RISC-V registers x0 to x31
-    private Instruction[] program;  // Array of all program instructions
+    int[] reg = new int[32];        // RISC-V registers x0 to x3
     private Memory memory;          // Memory byte array
 
     /**
@@ -12,20 +11,14 @@ public class CPU {
      * Sets stack pointer to last address in memory (last index of byte array memory.getMemory()).
      * Initializes memory and program to input parameters.
      */
-    public CPU(Memory mem) {
+    public CPU(Memory mem, int entryPointAddr) {
+        this.pc = entryPointAddr;
         this.memory = mem;                      // Initialize Memory object
-//        this.program = program;                 // Initialize array of Instruction objects
         reg[2] = memory.getMemory().length - 1; // Initialize stack pointer to point at last address. 
     }
 
-    public void loadBinaryProgram(byte[] rom) {
-        int len = (int) rom.length;                       // Number of instructions
-        program = new Instruction[len / 4];   // Instruction array
-        for (int i = 0; i < len; i = i + 4) {
-            int data = (int) ((rom[i + 3] & 0xFF) << 24) + ((rom[i + 2] & 0xFF) << 16) + ((rom[i + 1] & 0xFF) << 8) + ((rom[i] & 0xFF) << 0);
-            program[i / 4] = new Instruction(data);
-            memory.storeWord(i, data);
-        }
+    private Instruction InstructionDecode(int pc) {
+        return new Instruction(memory.getWord(pc));
     }
 
     /**
@@ -34,12 +27,12 @@ public class CPU {
      */
     public boolean executeInstruction() {
         prevPc = pc;
-        if (pc >= program.length) {
+        if (pc < 0) {
             return true;
         }
-        Instruction inst = program[pc];
+        Instruction inst = InstructionDecode(pc);
 //        打印指令操作码
-        System.out.println(inst.assemblyString);
+        System.out.println(Integer.toUnsignedString(pc,16)+":"+ inst.assemblyString);
         switch (inst.opcode) {
             // R-type instructions
             case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND
@@ -48,14 +41,14 @@ public class CPU {
 
             // J-type instruction
             case 0b1101111: //JAL
-                reg[inst.rd] = (pc + 1) << 2; // Store address of next instruction in bytes
-                pc += inst.imm >> 2;
+                reg[inst.rd] = (pc + 4); // Store address of next instruction in bytes
+                pc += inst.imm;
                 break;
 
             // I-type instructions
             case 0b1100111: // JALR
-                reg[inst.rd] = (pc + 1) << 2;
-                pc = ((reg[inst.rs1] + inst.imm) & 0xFFFFFFFE) >> 2;
+                reg[inst.rd] = (pc + 4);
+                pc = (reg[inst.rs1] + inst.imm);
                 break;
             case 0b0000011: // LB / LH / LW / LBU / LHU
                 iTypeLoad(inst);
@@ -80,11 +73,11 @@ public class CPU {
             //U-type instructions
             case 0b0110111: //LUI
                 reg[inst.rd] = inst.imm;
-                pc++;
+                pc += 4;
                 break;
             case 0b0010111: //AUIPC
-                reg[inst.rd] = (pc << 2) + inst.imm; // Shift pc because we count in 4 byte words
-                pc++;
+                reg[inst.rd] = pc + inst.imm;
+                pc += 4;
                 break;
         }
         reg[0] = 0; // x0 must always be 0
@@ -138,7 +131,7 @@ public class CPU {
                 reg[inst.rd] = reg[inst.rs1] & reg[inst.rs2];
                 break;
         }
-        pc++;
+        pc+=4;
     }
 
     /**
@@ -167,7 +160,7 @@ public class CPU {
             default:
                 break;
         }
-        pc++;
+        pc+=4;
     }
 
     /**
@@ -211,7 +204,7 @@ public class CPU {
                 }
                 break;
         }
-        pc++;
+        pc+=4;
     }
 
     /**
@@ -229,20 +222,20 @@ public class CPU {
                 // not sure if we can do this?
                 break;
             case 10:    // exit
-                pc = program.length; // Sets program counter to end of program, to program loop
+                pc = -1; // Sets program counter to end of program, to program loop
                 return;              // Exits 'iTypeStatus' function and returns to loop.
             case 11:    // print_character
                 System.out.println((char) reg[11]);
                 break;
             case 17:    // exit2
-                pc = program.length;
+                pc = -1;
                 //System.out.println("Return code: " + reg[11]); // Prints a1 (should be return?)
                 return;
             default:
                 System.out.println("ECALL " + reg[10] + " not implemented");
                 break;
         }
-        pc++;
+        pc+=4;
     }
 
     /**
@@ -262,7 +255,7 @@ public class CPU {
                 memory.storeWord(addr, reg[inst.rs2]);
                 break;
         }
-        pc++;
+        pc+=4;
     }
 
     /**
@@ -270,25 +263,25 @@ public class CPU {
      * BEQ / BNE / BLT / BGE / BLTU / BGEU
      */
     private void bType(Instruction inst) {
-        int Imm = inst.imm >> 2; //We're counting in words instead of bytes
+        int Imm = inst.imm;
         switch (inst.funct3) {
             case 0b000: // BEQ
-                pc += (reg[inst.rs1] == reg[inst.rs2]) ? Imm : 1;
+                pc += (reg[inst.rs1] == reg[inst.rs2]) ? Imm : 4;
                 break;
             case 0b001: // BNE
-                pc += (reg[inst.rs1] != reg[inst.rs2]) ? Imm : 1;
+                pc += (reg[inst.rs1] != reg[inst.rs2]) ? Imm : 4;
                 break;
             case 0b100: // BLT
-                pc += (reg[inst.rs1] < reg[inst.rs2]) ? Imm : 1;
+                pc += (reg[inst.rs1] < reg[inst.rs2]) ? Imm : 4;
                 break;
             case 0b101: // BGE
-                pc += (reg[inst.rs1] >= reg[inst.rs2]) ? Imm : 1;
+                pc += (reg[inst.rs1] >= reg[inst.rs2]) ? Imm : 4;
                 break;
             case 0b110: //BLTU
-                pc += (Integer.toUnsignedLong(reg[inst.rs1]) < Integer.toUnsignedLong(reg[inst.rs2])) ? Imm : 1;
+                pc += (Integer.toUnsignedLong(reg[inst.rs1]) < Integer.toUnsignedLong(reg[inst.rs2])) ? Imm : 4;
                 break;
             case 0b111: //BLGEU
-                pc += (Integer.toUnsignedLong(reg[inst.rs1]) >= Integer.toUnsignedLong(reg[inst.rs2])) ? Imm : 1;
+                pc += (Integer.toUnsignedLong(reg[inst.rs1]) >= Integer.toUnsignedLong(reg[inst.rs2])) ? Imm : 4;
                 break;
         }
     }

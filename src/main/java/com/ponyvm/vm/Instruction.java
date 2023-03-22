@@ -127,12 +127,12 @@ public class Instruction {
                 break;
             case 0b1101111: //JAL
                 arg1 = String.format("x%d", rd);
-                arg2 = String.format("x%d", imm);
+                arg2 = String.format("%d(x%d)", imm, rs1);
                 instr = "jal";
                 break;
             case 0b1100111: // JALR
                 arg1 = String.format("x%d", rd);
-                arg2 = String.format("x%d", imm);
+                arg2 = String.format("%d(x%d)", imm, rs1);
                 instr = "jalr";
                 break;
             case 0b0000011: // LB / LH / LW / LBU / LHU

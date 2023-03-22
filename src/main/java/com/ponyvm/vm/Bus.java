@@ -1,17 +1,16 @@
 package com.ponyvm.vm;
 
 import com.ponyvm.peripheral.TTY;
+import com.sun.xml.internal.bind.v2.runtime.SwaRefAdapterMarker;
 
 import java.util.ArrayList;
 
 public class Bus {
     //32位总线，最大寻址范围4G
     //内存映射表
-    //section：IRAM,地址：0x00010000
-
-
-
-    private byte[] RAM = new byte[73728];
+    //section：SRAM(包括IRAM，DRAM),地址：0x00010000
+    private int SRAM_OFFSET = 0x01_0000;
+    private Memory SRAM = new Memory(65536);
     //section：TTY 打印机，地址 255
     private byte PrintAddr = (byte) 0xFF;
 
@@ -22,20 +21,19 @@ public class Bus {
         this.tty = new TTY();
     }
 
-    public byte load(byte addr) {
+    public byte load(int addr) {
         if (addr == PrintAddr) {
             System.out.println();
         }
-        int index = Byte.toUnsignedInt(addr);
-        return this.RAM[index];
+
+        return this.SRAM.getByte(addr - SRAM_OFFSET);
     }
 
-    public void store(byte addr, byte data) {
-//        if (addr == PrintAddr) {
-//            tty.print(data);
-//            return;
-//        }
-        int index = Byte.toUnsignedInt(addr);
-        this.RAM[index] = data;
+    public void store(int addr, byte data) {
+        if (addr == PrintAddr) {
+            tty.print(data);
+            return;
+        }
+        this.SRAM.storeByte(addr - SRAM_OFFSET, data);
     }
 }
