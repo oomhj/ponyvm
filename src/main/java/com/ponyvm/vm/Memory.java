@@ -1,7 +1,12 @@
 
 package com.ponyvm.vm;
 
+import com.ponyvm.peripheral.TTY;
+
 public class /**/Memory {
+    //section：TTY 打印机，地址 255
+    private int PrintAddr = 0x000000FF;
+
     private int SRAM_OFFSET = 0x01_0000;
     private byte[] memory;
 
@@ -28,6 +33,10 @@ public class /**/Memory {
 
     // Stores a word in the memory array
     void storeWord(int addr, int data) {
+        if (addr == PrintAddr) {
+            TTY.print(data);
+            return;
+        }
         addr = addr - SRAM_OFFSET;
         memory[addr] = (byte) ((data & 0x000000FF));
         memory[addr + 1] = (byte) ((data & 0x0000FF00) >>> 8);
