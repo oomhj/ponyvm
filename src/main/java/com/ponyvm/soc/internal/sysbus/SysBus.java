@@ -17,32 +17,32 @@ public class SysBus implements Addressable {
 
     @Override
     public byte getByte(int addr) {
-        return 0;
+        return ADDR_MAP.get(0x01_0000).getModule().getByte(addr - 0x01_0000);
     }
 
     @Override
     public int getHalfWord(int addr) {
-        return 0;
+        return ADDR_MAP.get(0x01_0000).getModule().getHalfWord(addr - 0x01_0000);
     }
 
     @Override
     public int getWord(int addr) {
-        return 0;
+        return ADDR_MAP.get(0x01_0000).getModule().getWord(addr - 0x01_0000);
     }
 
     @Override
     public void storeByte(int addr, int data) {
-
+        ADDR_MAP.get(0x01_0000).getModule().storeByte(addr - 0x01_0000, data);
     }
 
     @Override
     public void storeHalfWord(int addr, short data) {
-
+        ADDR_MAP.get(0x01_0000).getModule().storeHalfWord(addr - 0x01_0000, data);
     }
 
     @Override
     public void storeWord(int addr, int data) {
-
+        ADDR_MAP.get(0x01_0000).getModule().storeWord(addr - 0x01_0000, data);
     }
 
     public void attachSection(BusSecion section) {

@@ -29,6 +29,7 @@ public class CPU {
 
     public int launch(int EntryAddr) {
         pc = EntryAddr;
+        stop = false;
         while (!this.stop) {
             executeInstruction();
         }

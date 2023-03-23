@@ -6,21 +6,15 @@
  */
 package com.ponyvm;
 
-import com.ponyvm.soc.board.Esp32c3;
-import com.ponyvm.soc.peripheral.flashtool.ELFFile;
-import com.ponyvm.soc.riscvcore.CPU;
-import com.ponyvm.soc.peripheral.flashtool.ELFLoader;
-import com.ponyvm.soc.internal.ram.Memory;
+import com.ponyvm.soc.board.PonySoc;
 
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 
 public class Main {
     public static void main(String[] args) throws IOException {
 
-        Esp32c3 vm = new Esp32c3();
+        PonySoc vm = new PonySoc();
         vm.launchROM(new File(ClassLoader.getSystemResource("loop.bin").getFile()));
 
     }
