@@ -1,4 +1,4 @@
-package com.ponyvm.vm;
+package com.ponyvm.soc.riscvcore;
 
 public class CPU {
     int pc = 0;                     // Program counter
@@ -15,7 +15,7 @@ public class CPU {
     public CPU(Memory mem, int entryPointAddr) {
         this.pc = entryPointAddr;
         this.memory = mem;                      // Initialize Memory object
-        reg[2] = 0x10000 + memory.getMemory().length - 4; // Initialize stack pointer to point at last address.
+        reg[2] = memory.getMemory().length - 4; // Initialize stack pointer to point at last address.
     }
 
     public void poweron() {
@@ -38,7 +38,7 @@ public class CPU {
         Instruction inst = InstructionDecode(pc);
         String instAddr = Integer.toUnsignedString(pc, 16);
 //        打印指令操作码
-//        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.assemblyString);
+        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.assemblyString);
 
 //        if (inst.assemblyString.trim().equals("jal x0 0(x0)")) {
 //            return ;
@@ -221,35 +221,37 @@ public class CPU {
      * Handles execution of i-Type ECALL instructions
      */
     private void iTypeEcall() {
-        switch (reg[10]) {
-            case 0:     // print_int
-                System.out.print(reg[11]);
-                this.stop = true;
-                break;
-            case 1:     // print_int
-                System.out.print(reg[11]);
-                break;
-            case 4:     // print_string
-                System.out.print(memory.getString(reg[11]));
-                break;
-            case 9:     // sbrk
-                // not sure if we can do this?
-                break;
-            case 10:    // exit
-                pc = -1; // Sets program counter to end of program, to program loop
-                return;              // Exits 'iTypeStatus' function and returns to loop.
-            case 11:    // print_character
-                System.out.println((char) reg[11]);
-                break;
-            case 17:    // exit2
-                pc = -1;
-                //System.out.println("Return code: " + reg[11]); // Prints a1 (should be return?)
-                return;
-            default:
-                System.out.println("ECALL " + reg[10] + " not implemented");
-                break;
-        }
-        pc += 4;
+        System.out.println("ECALL x10:" + reg[10] + ",x11:" + reg[11]);
+//        switch (reg[10]) {
+//            case 0:     // print_int
+//                System.out.println("ECALL x10" + reg[10] + ",x11" + reg[11]);
+//                this.stop = true;
+//                break;
+//            case 1:     // print_int
+//                System.out.println(reg[11]);
+//                break;
+//            case 4:     // print_string
+//                System.out.println(memory.getString(reg[11]));
+//                break;
+//            case 9:     // sbrk
+//                // not sure if we can do this?
+//                break;
+//            case 10:    // exit
+//                this.stop = true; // Sets program counter to end of program, to program loop
+//                return;              // Exits 'iTypeStatus' function and returns to loop.
+//            case 11:    // print_character
+//                System.out.println((char) reg[11]);
+//                break;
+//            case 17:    // exit2
+//                pc = -1;
+//                //System.out.println("Return code: " + reg[11]); // Prints a1 (should be return?)
+//                return;
+//            default:
+//                System.out.println("ECALL " + reg[10] + " not implemented");
+//                break;
+//        }
+        this.stop = true;
+//        pc += 4;
     }
 
     /**

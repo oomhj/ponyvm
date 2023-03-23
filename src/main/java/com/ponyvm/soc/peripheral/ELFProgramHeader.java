@@ -1,4 +1,4 @@
-package com.ponyvm.peripheral;
+package com.ponyvm.soc.peripheral;
 
 import com.ponyvm.tools.Utils;
 

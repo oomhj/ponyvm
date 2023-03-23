@@ -1,4 +1,4 @@
-package com.ponyvm.vm;
+package com.ponyvm.soc.riscvcore;
 
 public class Instruction {
     int instruction, opcode, rd, rs1, rs2, funct3, funct7, imm;

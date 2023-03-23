@@ -1,7 +1,7 @@
-package com.ponyvm.vm;
+package com.ponyvm.soc.riscvcore;
 
-import com.ponyvm.peripheral.ELFFile;
-import com.ponyvm.peripheral.ELFProgramHeader;
+import com.ponyvm.soc.peripheral.ELFFile;
+import com.ponyvm.soc.peripheral.ELFProgramHeader;
 
 public class ELFLoader {
 

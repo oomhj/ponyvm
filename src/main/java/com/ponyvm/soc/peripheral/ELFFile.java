@@ -1,6 +1,4 @@
-package com.ponyvm.peripheral;
-
-import com.ponyvm.tools.Utils;
+package com.ponyvm.soc.peripheral;
 
 import java.util.Arrays;
 

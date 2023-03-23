@@ -1,13 +1,13 @@
 
-package com.ponyvm.vm;
+package com.ponyvm.soc.riscvcore;
 
-import com.ponyvm.peripheral.TTY;
+import com.ponyvm.soc.peripheral.TTY;
 
 public class /**/Memory {
     //section：TTY 打印机，地址 255
     private int PrintAddr = 0x000000FF;
 
-    private int SRAM_OFFSET = 0x01_0000;
+    private int SRAM_OFFSET = 0x00;
     private byte[] memory;
 
     /**

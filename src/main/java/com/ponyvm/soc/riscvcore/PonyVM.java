@@ -1,4 +1,4 @@
-package com.ponyvm.vm;
+package com.ponyvm.soc.riscvcore;
 
 import java.util.Stack;
 

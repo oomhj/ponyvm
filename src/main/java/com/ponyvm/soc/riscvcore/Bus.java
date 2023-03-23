@@ -1,9 +1,6 @@
-package com.ponyvm.vm;
+package com.ponyvm.soc.riscvcore;
 
-import com.ponyvm.peripheral.TTY;
-import com.sun.xml.internal.bind.v2.runtime.SwaRefAdapterMarker;
-
-import java.util.ArrayList;
+import com.ponyvm.soc.peripheral.TTY;
 
 public class Bus {
     //32位总线，最大寻址范围4G

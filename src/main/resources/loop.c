@@ -1,13 +1,9 @@
 
-
-void main(void)
+int main(void)
 {
-	int len = 100;
-	int _sum = 0;
-	for(int i = 0; i <= len; i++){
-	    _sum += i;
+	int i, sum=0;	  //初始化i和sum
+    for(i=1;i<=100;i++){  //注意for内部的分号
+	    sum=sum+i;
 	}
-	//打印地址
-	unsigned int *tty = (unsigned int *)0x000000FF;
-	*tty = _sum;
+    return sum;
 }

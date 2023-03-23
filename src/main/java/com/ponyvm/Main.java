@@ -6,10 +6,10 @@
  */
 package com.ponyvm;
 
-import com.ponyvm.peripheral.ELFFile;
-import com.ponyvm.vm.CPU;
-import com.ponyvm.vm.ELFLoader;
-import com.ponyvm.vm.Memory;
+import com.ponyvm.soc.peripheral.ELFFile;
+import com.ponyvm.soc.riscvcore.CPU;
+import com.ponyvm.soc.riscvcore.ELFLoader;
+import com.ponyvm.soc.riscvcore.Memory;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -18,11 +18,11 @@ import java.io.IOException;
 
 public class Main {
     private static final int BYTES_PR_PAGE = 256;    // 64 words
-    private static final int MEMORY_SIZE = 65536;    // 64KB memory
+    private static final int MEMORY_SIZE = 196608;    // 192MB memory
 
     public static void main(String[] args) throws IOException {
         Memory mem = new Memory(MEMORY_SIZE);
-        ELFFile elfFile = loadELFFile(new File(ClassLoader.getSystemResource("loop.bin").getFile()));
+        ELFFile elfFile = loadELFFile(new File(ClassLoader.getSystemResource("loop1.bin").getFile()));
 //        String elfinfo = elfFile.toString();
 //        System.out.println(elfinfo);
 

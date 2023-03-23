@@ -1,4 +1,4 @@
-package com.ponyvm.vm;
+package com.ponyvm.soc.riscvcore;
 
 public enum OpCodes {
     PUSH0((byte) 0, "PUSH0"), //    PUSH, OPE
