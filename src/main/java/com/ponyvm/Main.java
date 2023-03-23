@@ -22,7 +22,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         Memory mem = new Memory(MEMORY_SIZE);
-        ELFFile elfFile = loadELFFile(new File(ClassLoader.getSystemResource("loop1.bin").getFile()));
+        ELFFile elfFile = loadELFFile(new File(ClassLoader.getSystemResource("loop.bin").getFile()));
 //        String elfinfo = elfFile.toString();
 //        System.out.println(elfinfo);
 

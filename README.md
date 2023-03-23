@@ -1,6 +1,5 @@
 # ponyvm
-
-RV32分支，采用RV32IM指令集
+RV32分支，采用RV32I指令集
 
 采用ESP32C3工具链
 /Users/ponyma/Library/Arduino15/packages/esp32/tools/riscv32-esp-elf-gcc/esp-2021r2-patch5-8.4.0/bin
@@ -14,11 +13,11 @@ riscv32-esp-elf-gcc -S loop.c -o loop.s
 
 编译
 
-riscv32-esp-elf-gcc -march=rv32im -c loop.s -o loop.o
+riscv32-esp-elf-gcc -march=rv32i -c loop.s -o loop.o
 
 链接
 
-riscv32-esp-elf-gcc -march=rv32im --specs=nosys.specs loop.o -o loop
+riscv32-esp-elf-gcc -march=rv32i --specs=nosys.specs loop.o -o loop
 
 
 
