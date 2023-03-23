@@ -30,9 +30,9 @@ public class Esp32c3 {
 
     private CPU CPU;
 
-    public Esp32c3(String NAME, String VERSION) {
-        this.NAME = NAME;
-        this.VERSION = VERSION;
+    public Esp32c3() {
+        this.NAME = "Esp32c3";
+        this.VERSION = "01";
         initMachine();
     }
 

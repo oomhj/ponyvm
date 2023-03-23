@@ -45,7 +45,7 @@ public class CPU {
         Instruction inst = InstructionDecode(pc);
         String instAddr = Integer.toUnsignedString(pc, 16);
 //        打印指令操作码
-//        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.assemblyString);
+        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.assemblyString);
 
 //        if (inst.assemblyString.trim().equals("jal x0 0(x0)")) {
 //            return ;
