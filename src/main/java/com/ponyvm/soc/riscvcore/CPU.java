@@ -1,10 +1,12 @@
 package com.ponyvm.soc.riscvcore;
 
+import com.ponyvm.soc.internal.sysbus.Addressable;
+
 public class CPU {
     int pc = 0;                     // Program counter
     int prevPc;                     // Previous pc
     int[] reg = new int[32];        // RISC-V registers x0 to x3
-    private Memory memory;          // Memory byte array
+    private Addressable SYS_BUS;          // SYS_BUS
     public boolean stop = true;
 
     /**
@@ -12,10 +14,9 @@ public class CPU {
      * Sets stack pointer to last address in memory (last index of byte array memory.getMemory()).
      * Initializes memory and program to input parameters.
      */
-    public CPU(Memory mem, int entryPointAddr) {
-        this.pc = entryPointAddr;
-        this.memory = mem;                      // Initialize Memory object
-        reg[2] = memory.getMemory().length - 4; // Initialize stack pointer to point at last address.
+    public CPU(Addressable bus, int SP) {
+        this.SYS_BUS = bus;                      // Initialize Memory object
+        reg[2] = SP; // Initialize stack pointer to point at last address.
     }
 
     public void poweron() {
@@ -23,17 +24,23 @@ public class CPU {
     }
 
     private Instruction InstructionDecode(int pc) {
-        return new Instruction(memory.getWord(pc));
+        return new Instruction(SYS_BUS.getWord(pc));
     }
+
+    public int launch(int EntryAddr) {
+        pc = EntryAddr;
+        while (!this.stop) {
+            executeInstruction();
+        }
+        return 0;
+    }
+
 
     /**
      * Executes one instruction given by the Instruction array 'program' at index given by the program counter 'pc'.
      * Uses the opcode field of the instruction to determine which type of instruction it is and call that method.
      */
     public boolean executeInstruction() {
-        if (this.stop) {
-            return this.stop;
-        }
         prevPc = pc;
         Instruction inst = InstructionDecode(pc);
         String instAddr = Integer.toUnsignedString(pc, 16);
@@ -153,19 +160,19 @@ public class CPU {
 
         switch (inst.funct3) {
             case 0b000: // LB
-                reg[inst.rd] = memory.getByte(addr);
+                reg[inst.rd] = SYS_BUS.getByte(addr);
                 break;
             case 0b001: // LH
-                reg[inst.rd] = memory.getHalfWord(addr);
+                reg[inst.rd] = SYS_BUS.getHalfWord(addr);
                 break;
             case 0b010: // LW
-                reg[inst.rd] = memory.getWord(addr);
+                reg[inst.rd] = SYS_BUS.getWord(addr);
                 break;
             case 0b100: // LBU
-                reg[inst.rd] = memory.getByte(addr) & 0xFF; //Remove sign bits
+                reg[inst.rd] = SYS_BUS.getByte(addr) & 0xFF; //Remove sign bits
                 break;
             case 0b101: // LHU
-                reg[inst.rd] = memory.getHalfWord(addr) & 0xFFFF;
+                reg[inst.rd] = SYS_BUS.getHalfWord(addr) & 0xFFFF;
                 break;
             default:
                 break;
@@ -262,13 +269,13 @@ public class CPU {
         int addr = reg[inst.rs1] + inst.imm;
         switch (inst.funct3) {
             case 0b000: // SB
-                memory.storeByte(addr, (byte) reg[inst.rs2]);
+                SYS_BUS.storeByte(addr, (byte) reg[inst.rs2]);
                 break;
             case 0b001: // SH
-                memory.storeHalfWord(addr, (short) reg[inst.rs2]);
+                SYS_BUS.storeHalfWord(addr, (short) reg[inst.rs2]);
                 break;
             case 0b010: // SW
-                memory.storeWord(addr, reg[inst.rs2]);
+                SYS_BUS.storeWord(addr, reg[inst.rs2]);
                 break;
         }
         pc += 4;

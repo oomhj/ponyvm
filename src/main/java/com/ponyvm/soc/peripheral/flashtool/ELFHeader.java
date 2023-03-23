@@ -1,4 +1,4 @@
-package com.ponyvm.soc.peripheral;
+package com.ponyvm.soc.peripheral.flashtool;
 
 public class ELFHeader {
     private byte[] ROM;

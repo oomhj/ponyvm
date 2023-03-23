@@ -1,4 +1,4 @@
-package com.ponyvm.soc.peripheral;
+package com.ponyvm.soc.peripheral.flashtool;
 
 import com.ponyvm.tools.Utils;
 

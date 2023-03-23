@@ -6,10 +6,10 @@
  */
 package com.ponyvm;
 
-import com.ponyvm.soc.peripheral.ELFFile;
+import com.ponyvm.soc.peripheral.flashtool.ELFFile;
 import com.ponyvm.soc.riscvcore.CPU;
-import com.ponyvm.soc.riscvcore.ELFLoader;
-import com.ponyvm.soc.riscvcore.Memory;
+import com.ponyvm.soc.peripheral.flashtool.ELFLoader;
+import com.ponyvm.soc.internal.ram.Memory;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -30,9 +30,7 @@ public class Main {
 
         CPU cpu = new CPU(mem, elfFile.HEADER.e_entry());
         cpu.poweron();
-        while (!cpu.stop) {
-            cpu.executeInstruction();
-        }
+
     }
 
     public static byte[] getESPRom(File f) throws IOException {

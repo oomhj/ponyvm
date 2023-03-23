@@ -1,7 +1,5 @@
 package com.ponyvm.toolchain;
 
-import com.ponyvm.soc.riscvcore.OpCodes;
-
 public class AssemblyCompiler {
     public static byte[] compile(String program) {
         byte[] bin = new byte[128];

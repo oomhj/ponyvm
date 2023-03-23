@@ -1,11 +1,10 @@
-package com.ponyvm.soc.riscvcore;
+package com.ponyvm.soc.peripheral.flashtool;
 
-import com.ponyvm.soc.peripheral.ELFFile;
-import com.ponyvm.soc.peripheral.ELFProgramHeader;
+import com.ponyvm.soc.internal.sysbus.Addressable;
 
 public class ELFLoader {
 
-    public static void loadElf(ELFFile bin, Memory memory) {
+    public static void loadElf(ELFFile bin, Addressable memory) {
         int phl = bin.PROGRAM_HEADERS.length;
         for (int i = 0; i < phl; i++) {
             ELFProgramHeader eph = bin.PROGRAM_HEADERS[i];
