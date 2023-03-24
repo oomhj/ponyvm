@@ -1,8 +1,10 @@
 package com.ponyvm.soc.internal.sysbus;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
-public class SysBus implements Addressable {
+public class SysBus implements Addressable, IBus {
 
     private HashMap<Integer, BusSecion> ADDR_MAP;
 
@@ -17,35 +19,48 @@ public class SysBus implements Addressable {
 
     @Override
     public byte getByte(int addr) {
-        return ADDR_MAP.get(0x01_0000).getModule().getByte(addr - 0x01_0000);
+        return route(addr).getByte(addr);
     }
 
     @Override
     public int getHalfWord(int addr) {
-        return ADDR_MAP.get(0x01_0000).getModule().getHalfWord(addr - 0x01_0000);
+        return route(addr).getHalfWord(addr);
     }
 
     @Override
     public int getWord(int addr) {
-        return ADDR_MAP.get(0x01_0000).getModule().getWord(addr - 0x01_0000);
+        return route(addr).getWord(addr);
     }
 
     @Override
     public void storeByte(int addr, int data) {
-        ADDR_MAP.get(0x01_0000).getModule().storeByte(addr - 0x01_0000, data);
+        route(addr).storeByte(addr, data);
     }
 
     @Override
     public void storeHalfWord(int addr, short data) {
-        ADDR_MAP.get(0x01_0000).getModule().storeHalfWord(addr - 0x01_0000, data);
+        route(addr).storeHalfWord(addr, data);
     }
 
     @Override
     public void storeWord(int addr, int data) {
-        ADDR_MAP.get(0x01_0000).getModule().storeWord(addr - 0x01_0000, data);
+        route(addr).storeWord(addr, data);
     }
 
+    @Override
     public void attachSection(BusSecion section) {
-        this.ADDR_MAP.put(section.getAddr(), section);
+        this.ADDR_MAP.put(section.getOffset(), section);
+    }
+
+    private BusSecion route(int addr) {
+        Iterator<Map.Entry<Integer, BusSecion>> inter = ADDR_MAP.entrySet().iterator();
+        while (inter.hasNext()) {
+            Map.Entry<Integer, BusSecion> entry = inter.next();
+            BusSecion secion = entry.getValue();
+            if (secion.contain(addr)) {
+                return secion;
+            }
+        }
+        return null;
     }
 }

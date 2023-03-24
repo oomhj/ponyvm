@@ -37,7 +37,7 @@ public class PonySoc {
         this.SYS_BUS = new SysBus();
         //指令&数据地址
         SYS_BUS.attachSection(new BusSecion(2, 0x01_0000, this.SRAM));
-        SYS_BUS.attachSection(new BusSecion(3, 0x00_0000, new TTY()));
+        SYS_BUS.attachSection(new BusSecion(3, 0x00_00FF, new TTY()));
         this.CPU = new CPU(SYS_BUS, 0x03_FFFC);
     }
 
