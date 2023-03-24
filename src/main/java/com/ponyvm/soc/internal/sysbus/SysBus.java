@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class SysBus implements Addressable, IBus {
-
+    //以0xFFFF(65536)个地址为一个Page
     private HashMap<Integer, BusSecion> ADDR_MAP;
     private BusSecion ZERO_SECTION = new BusSecion(4, 0x7FFFFFFF, new ZeroAddr());
 
@@ -50,18 +50,21 @@ public class SysBus implements Addressable, IBus {
 
     @Override
     public void attachSection(BusSecion section) {
-        this.ADDR_MAP.put(section.getOffset(), section);
+        int offset = section.getOffset();
+        int capacity = section.getCapacity();
+        //低位应该对齐为0
+        if ((offset & 0xFFFF) == 0) {
+            int pageIndex = offset >> 16;
+            int pageSize = (capacity / 0x01_0000) + (capacity % 0x01_0000 == 0 ? 0 : 1);
+
+            for (int i = 0; i < pageSize; i++) {
+                this.ADDR_MAP.put(pageIndex + i, section);
+            }
+        }
     }
 
     private BusSecion route(int addr) {
-        Iterator<Map.Entry<Integer, BusSecion>> inter = ADDR_MAP.entrySet().iterator();
-        while (inter.hasNext()) {
-            Map.Entry<Integer, BusSecion> entry = inter.next();
-            BusSecion secion = entry.getValue();
-            if (secion.contain(addr)) {
-                return secion;
-            }
-        }
-        return ZERO_SECTION;
+        BusSecion secion = ADDR_MAP.get(addr >> 16);
+        return secion == null ? ZERO_SECTION : secion;
     }
 }

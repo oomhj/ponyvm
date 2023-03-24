@@ -1,17 +1,11 @@
 public class Test {
 
     public static void main(String[] args) {
-        int i = 0x7FFFFFFF;
-        System.out.println(String.valueOf(i));
-        System.out.println(Integer.toUnsignedString(i, 16));
-        System.out.println(Integer.toHexString(i));
-        System.out.println(Integer.toUnsignedString(i));
-        System.out.println(Integer.toString(i, 16));
-        i++;
-        System.out.println(String.valueOf(i));
-        System.out.println(Integer.toUnsignedString(i, 16));
-        System.out.println(Integer.toHexString(i));
-        System.out.println(Integer.toUnsignedString(i));
-        System.out.println(Integer.toString(i, 16));
+        int in = 0x7F6E5D4C;
+        byte[] b = new byte[4];
+        int low = in & 0xffff;
+        int high = in >> 16;
+
+        System.out.println(b);
     }
 }

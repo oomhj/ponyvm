@@ -20,7 +20,7 @@ public class PonySoc extends RV32I {
         this.SYS_BUS = new SysBus();
         //指令&数据地址
         SYS_BUS.attachSection(new BusSecion(2, 0x01_0000, new Memory(SRAM_SIZE)));
-        SYS_BUS.attachSection(new BusSecion(3, 0x00_00FC, new TTY()));
+        SYS_BUS.attachSection(new BusSecion(3, 0x00_0000, new TTY()));
         this.CORE = new CPU(SYS_BUS, 0x03_FFFC);
     }
 
