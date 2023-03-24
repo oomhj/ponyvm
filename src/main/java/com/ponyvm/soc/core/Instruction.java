@@ -5,14 +5,8 @@ public class Instruction {
     boolean noRd = false;
     boolean sType = false;
     boolean ecall = false;
-//    String assemblyString;
 
-    /**
-     * Constructor
-     * Sets the instruction and decodes it.
-     */
     public Instruction(int instruction) {
-        // Used in nearly all 
         this.instruction = instruction;
         this.opcode = instruction & 0x7F;           // First 7 bits
         this.rd = (instruction >> 7) & 0x1F;        // bits 11 to 7
@@ -20,16 +14,15 @@ public class Instruction {
         this.rs1 = (instruction >> 15) & 0x1F;      // bits 19 to 15
         this.rs2 = (instruction >> 20) & 0x1F;      // bits 24 to 20
 
-        // Immediate is different for all types
-        switch(opcode) {
+        switch (opcode) {
             case 0b1101111: // J-type
-                this.imm =  getImmJ(instruction);
+                this.imm = getImmJ(instruction);
                 break;
             case 0b1100111: // I-type
             case 0b0000011:
             case 0b0010011:
                 this.imm = (instruction >> 20); // bits 31 to 20
-                // No break since I-type also uses funct7 in shift instructions  
+                // 不 break  I-type 也会用到 funct7
             case 0b0110011: // R-type
                 this.funct7 = (instruction >> 25) & 0x7F;   // bits 31 to 25
                 break;
@@ -45,50 +38,44 @@ public class Instruction {
                 this.imm = instruction & 0xFFFFF000;
                 break;
             default:
-                // R-type and ECALL doesn't have an immediate
+                // R-type 和 ECALL 没有立即数
                 break;
         }
-
-//        this.assemblyString = toAssemblyString();   // The instruction show in assembly code
     }
 
 
     /**
-     * Returns the B-type immediate
-     * Decoded like this: imm[12|10:5|4:1|11]
+     * 获取 B-type 立即数
+     * imm[12|10:5|4:1|11]
      */
-    private int getImmB (int instruction) {
-        return ((((((instruction >>> 7) & 0x0000001F)|(instruction >> 20) & 0xFFFFFFE0)) & 0xFFFFF7FE)
+    private int getImmB(int instruction) {
+        return ((((((instruction >>> 7) & 0x0000001F) | (instruction >> 20) & 0xFFFFFFE0)) & 0xFFFFF7FE)
                 | (((((instruction >> 20) & 0xFFFFFFE0) | ((instruction >>> 7) & 0x0000001F)) & 0x00000001) << 11));
     }
 
     /**
-     * Returns the J-type immediate
+     * 获取 J-type 立即数
      * Decoded like this: imm[20|10:1|11|19:12]
      */
     private int getImmJ(int instruction) {
-        int b12to19 = (instruction>>12) & 0xFF; // Bits 12 to 19 of immediate (12 to 19 of instruction)
-        int b11 = (instruction>>20) & 0x1;      // Bit 11 of immediate (20th bit of instruction)
-        int b1to10 = (instruction>>21) & 0x3FF; // Bit 1 to 10 of immediate (21 to 30 of instruction)
-        int b20 = (instruction>>31);            // Bit 20 of immediate (MSB of instruction)
+        int b12to19 = (instruction >> 12) & 0xFF; // Bits 12 to 19 of immediate (12 to 19 of instruction)
+        int b11 = (instruction >> 20) & 0x1;      // Bit 11 of immediate (20th bit of instruction)
+        int b1to10 = (instruction >> 21) & 0x3FF; // Bit 1 to 10 of immediate (21 to 30 of instruction)
+        int b20 = (instruction >> 31);            // Bit 20 of immediate (MSB of instruction)
         return (b20 << 20 | b12to19 << 12 | b11 << 11 | b1to10 << 1);
     }
 
-    /**
-     * Converts the instruction to an assembly string.
-     * Returns the string
-     */
-    private String toAssemblyString(){
+    private String toAssemblyString() {
         String instr = "", arg1 = "", arg2 = "", arg3 = "";
-        switch(opcode){
+        switch (opcode) {
             // R-type instructions
             case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND
                 arg1 = String.format("x%d", rd);
                 arg2 = String.format("x%d", rs1);
                 arg3 = String.format("x%d", rs2);
-                switch(funct3){
+                switch (funct3) {
                     case 0b000: // ADD / SUB
-                        switch(funct7){
+                        switch (funct7) {
                             case 0b0000000: // ADD
                                 instr = "add";
                                 break;
@@ -109,7 +96,7 @@ public class Instruction {
                         instr = "xor";
                         break;
                     case 0b101: // SRL / SRA
-                        switch(funct7){
+                        switch (funct7) {
                             case 0b0000000: // SRL
                                 instr = "srl";
                                 break;
@@ -138,7 +125,7 @@ public class Instruction {
             case 0b0000011: // LB / LH / LW / LBU / LHU
                 arg1 = String.format("x%d", rd);
                 arg2 = String.format("%d(x%d)", imm, rs1);
-                switch(funct3){
+                switch (funct3) {
                     case 0b000: // LB
                         instr = "lb";
                         break;
@@ -160,7 +147,7 @@ public class Instruction {
                 arg1 = String.format("x%d", rd);
                 arg2 = String.format("x%d", rs1);
                 arg3 = String.format("%d", imm);
-                switch(funct3){
+                switch (funct3) {
                     case 0b000: // ADDI
                         instr = "addi";
                         break;
@@ -183,7 +170,7 @@ public class Instruction {
                         instr = "slli";
                         break;
                     case 0b101: // SRLI / SRAI
-                        switch(funct7){
+                        switch (funct7) {
                             case 0b0000000: // SRLI
                                 instr = "srli";
                                 break;
@@ -195,7 +182,7 @@ public class Instruction {
                 }
                 break;
             case 0b0001111: // FENCE / FENCE.I
-                switch(funct3){
+                switch (funct3) {
                     case 0b000: // FENCE
                         instr = "fence";
                         break;
@@ -205,9 +192,9 @@ public class Instruction {
                 }
                 break;
             case 0b1110011: // ECALL / EBREAK / CSRRW / CSRRS / CSRRC / CSRRWI / CSRRSI / CSRRCI
-                switch(funct3){
+                switch (funct3) {
                     case 0b000: // ECALL / EBREAK
-                        switch(imm){
+                        switch (imm) {
                             case 0b000000000000: // ECALL
                                 instr = "ecall";
                                 ecall = true;
@@ -243,7 +230,7 @@ public class Instruction {
             case 0b0100011: //SB / SH / SW
                 arg1 = String.format("x%d", rs2);
                 arg2 = String.format("%d(x%d)", imm, rs1);
-                switch(funct3){
+                switch (funct3) {
                     case 0b000: // SB
                         instr = "sb";
                         break;
@@ -263,7 +250,7 @@ public class Instruction {
                 arg1 = String.format("x%d", rs1);
                 arg2 = String.format("x%d", rs2);
                 arg3 = String.format("%d", imm);
-                switch(funct3){
+                switch (funct3) {
                     case 0b000: // BEQ
                         instr = "beq";
                         break;

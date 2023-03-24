@@ -10,11 +10,6 @@ public class CPU {
     private Addressable SYS_BUS;          // 系统总线
     private boolean stop = true;
 
-    /**
-     * CPU constructor
-     * Sets stack pointer to last address in memory (last index of byte array memory.getMemory()).
-     * Initializes memory and program to input parameters.
-     */
     public CPU(Addressable bus, int SP) {
         this.SYS_BUS = bus;//配置总线
         reg[2] = SP; // 栈指针
@@ -43,11 +38,6 @@ public class CPU {
         return 0;
     }
 
-
-    /**
-     * Executes one instruction given by the Instruction array 'program' at index given by the program counter 'pc'.
-     * Uses the opcode field of the instruction to determine which type of instruction it is and call that method.
-     */
     public boolean executeInstruction() {
         prevPc = pc;
         Instruction inst = InstructionDecode(pc);
@@ -106,7 +96,7 @@ public class CPU {
     }
 
     /**
-     * Handles execution of r-Type instructions:
+     * r-Type instructions:
      * ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND
      */
     private void rType(Instruction inst) {
@@ -156,7 +146,7 @@ public class CPU {
     }
 
     /**
-     * Handles execution of i-Type load instructions:
+     * i-Type load instructions:
      * LB / LH / LW / LBU / LHU
      */
     private void iTypeLoad(Instruction inst) {
@@ -185,7 +175,7 @@ public class CPU {
     }
 
     /**
-     * Handles execution of I-type integer instructions:
+     * I-type integer instructions:
      * ADDI / SLTI / SLTIU / XORI / ORI / ANDI / SLLI / SRLI / SRAI
      */
     private void iTypeInteger(Instruction inst) {
@@ -229,7 +219,7 @@ public class CPU {
     }
 
     /**
-     * Handles execution of i-Type ECALL instructions
+     * i-Type ECALL instructions
      */
     private void iTypeEcall() {
         System.out.println("ECALL x10:" + reg[10] + ",x11:" + reg[11]);
@@ -266,7 +256,7 @@ public class CPU {
     }
 
     /**
-     * Handles the S-type instructions:
+     * S-type instructions:
      * SB / SH / SW
      */
     private void sType(Instruction inst) {
@@ -286,7 +276,7 @@ public class CPU {
     }
 
     /**
-     * Handles the B-type instructions:
+     * B-type instructions:
      * BEQ / BNE / BLT / BGE / BLTU / BGEU
      */
     private void bType(Instruction inst) {
