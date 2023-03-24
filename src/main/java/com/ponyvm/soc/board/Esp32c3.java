@@ -12,7 +12,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-public class Esp32c3 {
+public class Esp32c3 implements Soc {
 
     private String NAME;
 

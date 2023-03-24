@@ -13,7 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-public class PonySoc {
+public class PonySoc implements Soc{
     private String NAME;
 
     private String VERSION;
