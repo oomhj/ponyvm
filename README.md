@@ -1,13 +1,17 @@
-# ponyvm
+Java实现的RSIC-V教学虚拟机。采用RV32I指令集
 
-Main分支，教学虚拟机
+ponyvm-rv32i 构建打包
 
-基于栈的8位总线虚拟机，采用PonyISA指令集
+mvn compile assembly:single
 
-RV32分支，采用RV32I指令集
+ponyvm-rv32i 运行
 
-git checkout RV32I
+java -jar PonyVM-0.0.1.jar -f pi.bin
 
-JVM分支，JVM实现
+命令行 参数
 
-git checkout JVM
+-f rom文件
+
+C样例编译 采用了ESP32C3的工具链 riscv32-esp-elf-gcc
+
+riscv32-esp-elf-gcc -march=rv32i loop.s -o loop.bin
