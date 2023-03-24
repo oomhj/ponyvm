@@ -45,9 +45,17 @@ public class PonySoc {
         ELFFile elfFile = loadELFFile(rom);
 //        String elfinfo = elfFile.toString();
 //        System.out.println(elfinfo);
-
+        System.out.println("加载程序：" + rom.getName());
+        long time1 = System.currentTimeMillis();
         ELFLoader.loadElf(elfFile, this.SYS_BUS);
-        return this.CPU.launch(elfFile.HEADER.e_entry());
+        long time2 = System.currentTimeMillis();
+        System.out.println("程序加载完成，耗时(ms)：" + (time2 - time1));
+        System.out.println("正在运行……");
+        time1 = System.currentTimeMillis();
+        int ret = this.CPU.launch(elfFile.HEADER.e_entry());
+        time2 = System.currentTimeMillis();
+        System.out.println("运行结束，耗时(ms)：" + (time2 - time1));
+        return ret;
     }
 
     private ELFFile loadELFFile(File f) throws IOException {
