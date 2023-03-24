@@ -1,11 +1,11 @@
-package com.ponyvm.soc.riscvcore;
+package com.ponyvm.soc.core;
 
 public class Instruction {
     int instruction, opcode, rd, rs1, rs2, funct3, funct7, imm;
     boolean noRd = false;
     boolean sType = false;
     boolean ecall = false;
-    String assemblyString;
+//    String assemblyString;
 
     /**
      * Constructor
@@ -49,7 +49,7 @@ public class Instruction {
                 break;
         }
 
-        this.assemblyString = toAssemblyString();   // The instruction show in assembly code
+//        this.assemblyString = toAssemblyString();   // The instruction show in assembly code
     }
 
 

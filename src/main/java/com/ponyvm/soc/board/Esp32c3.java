@@ -3,7 +3,7 @@ package com.ponyvm.soc.board;
 import com.ponyvm.soc.internal.ram.Memory;
 import com.ponyvm.soc.internal.sysbus.BusSecion;
 import com.ponyvm.soc.internal.sysbus.SysBus;
-import com.ponyvm.soc.riscvcore.CPU;
+import com.ponyvm.soc.core.CPU;
 
 public class Esp32c3 extends RV32I {
 

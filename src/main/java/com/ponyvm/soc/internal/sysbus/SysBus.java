@@ -7,6 +7,7 @@ import java.util.Map;
 public class SysBus implements Addressable, IBus {
 
     private HashMap<Integer, BusSecion> ADDR_MAP;
+    private BusSecion ZERO_SECTION = new BusSecion(4, 0x7FFFFFFF, new ZeroAddr());
 
     public SysBus() {
         this.ADDR_MAP = new HashMap<>();
@@ -61,6 +62,6 @@ public class SysBus implements Addressable, IBus {
                 return secion;
             }
         }
-        return null;
+        return ZERO_SECTION;
     }
 }

@@ -1,13 +1,14 @@
-package com.ponyvm.soc.riscvcore;
+package com.ponyvm.soc.core;
 
 import com.ponyvm.soc.internal.sysbus.Addressable;
 
 public class CPU {
-    int pc = 0;                     // Program counter
-    int prevPc;                     // Previous pc
-    int[] reg = new int[32];        // RISC-V registers x0 to x3
-    private Addressable SYS_BUS;          // SYS_BUS
-    public boolean stop = true;
+    int pc = 0;                     // 程序上计数器
+    int prevPc;                     // 上一条指令
+    private Cache<Instruction> I_CACHE;//指令缓存
+    int[] reg = new int[32];        // 寄存器
+    private Addressable SYS_BUS;          // 系统总线
+    private boolean stop = true;
 
     /**
      * CPU constructor
@@ -15,8 +16,9 @@ public class CPU {
      * Initializes memory and program to input parameters.
      */
     public CPU(Addressable bus, int SP) {
-        this.SYS_BUS = bus;                      // Initialize Memory object
-        reg[2] = SP; // Initialize stack pointer to point at last address.
+        this.SYS_BUS = bus;//配置总线
+        reg[2] = SP; // 栈指针
+        I_CACHE = new Cache<>(16 * 1024);//16K条指令缓存（相当于64KB的机器指令）
     }
 
     public void poweron() {
@@ -24,7 +26,12 @@ public class CPU {
     }
 
     private Instruction InstructionDecode(int pc) {
-        return new Instruction(SYS_BUS.getWord(pc));
+        Instruction instr = I_CACHE.get(pc);
+        if (instr == null) {
+            instr = new Instruction(SYS_BUS.getWord(pc));
+            I_CACHE.put(pc, instr);
+        }
+        return instr;
     }
 
     public int launch(int EntryAddr) {

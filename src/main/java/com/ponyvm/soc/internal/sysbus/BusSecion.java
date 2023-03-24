@@ -1,7 +1,7 @@
 package com.ponyvm.soc.internal.sysbus;
 
 public class BusSecion implements Addressable {
-    //0:指令,1:数据,2:指令&数据,3外设
+    //0:指令,1:数据,2:指令&数据,3外设,4黑洞
     private int type;
     private int firstAddr;
     private int lastAddr;

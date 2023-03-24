@@ -3,7 +3,7 @@ package com.ponyvm.soc.board;
 import com.ponyvm.soc.internal.sysbus.SysBus;
 import com.ponyvm.soc.peripheral.flashtool.ELFFile;
 import com.ponyvm.soc.peripheral.flashtool.ELFLoader;
-import com.ponyvm.soc.riscvcore.CPU;
+import com.ponyvm.soc.core.CPU;
 
 import java.io.DataInputStream;
 import java.io.File;
