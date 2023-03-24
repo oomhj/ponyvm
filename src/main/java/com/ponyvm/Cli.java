@@ -15,7 +15,7 @@ import java.io.IOException;
 import com.ponyvm.soc.board.Soc;
 import org.apache.commons.cli.*;
 
-public class Main {
+public class Cli {
     public static void main(String[] args) throws IOException {
 // commons-cli命令行参数，需要带参数值
         Options options = new Options();

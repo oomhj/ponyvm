@@ -3,22 +3,10 @@ package com.ponyvm.soc.board;
 import com.ponyvm.soc.internal.ram.Memory;
 import com.ponyvm.soc.internal.sysbus.BusSecion;
 import com.ponyvm.soc.internal.sysbus.SysBus;
-import com.ponyvm.soc.peripheral.flashtool.ELFFile;
-import com.ponyvm.soc.peripheral.flashtool.ELFLoader;
 import com.ponyvm.soc.riscvcore.CPU;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+public class Esp32c3 extends RV32I {
 
-public class Esp32c3 implements Soc {
-
-    private String NAME;
-
-    private String VERSION;
-
-    private SysBus SYS_BUS;
 
     private Memory SRAM;//400KB
 
@@ -27,8 +15,6 @@ public class Esp32c3 implements Soc {
     private Memory RTC_RAM;
 
     private int RTC_RAM_SIZE = 8 * 1024;//8KB
-
-    private CPU CPU;
 
     public Esp32c3() {
         this.NAME = "Esp32c3";
@@ -46,26 +32,6 @@ public class Esp32c3 implements Soc {
         SYS_BUS.attachSection(new BusSecion(0, 0x4037_C000, this.SRAM));
 
         SYS_BUS.attachSection(new BusSecion(2, 0x5000_0000, this.RTC_RAM));
-        this.CPU = new CPU(SYS_BUS, 0x3FCD_FFFC);
-    }
-
-    public int launchROM(File rom) throws IOException {
-        ELFFile elfFile = loadELFFile(new File(ClassLoader.getSystemResource("loop.bin").getFile()));
-//        String elfinfo = elfFile.toString();
-//        System.out.println(elfinfo);
-
-        ELFLoader.loadElf(elfFile, this.SYS_BUS);
-        return this.CPU.launch(elfFile.HEADER.e_entry());
-    }
-
-    private ELFFile loadELFFile(File f) throws IOException {
-        DataInputStream dis = new DataInputStream(new FileInputStream(f));
-        int len = (int) f.length();   // ELFFile Size
-        byte[] rom = new byte[len];
-        for (int i = 0; i < len; i++) {
-            rom[i] = dis.readByte();
-        }
-        dis.close();
-        return new ELFFile(rom);
+        this.CORE = new CPU(SYS_BUS, 0x3FCD_FFFC);
     }
 }

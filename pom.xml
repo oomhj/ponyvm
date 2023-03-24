@@ -35,7 +35,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.ponyvm.Main</mainClass>
+                            <mainClass>com.ponyvm.Cli</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
