@@ -46,11 +46,7 @@ public class CPU {
         Instruction inst = InstructionDecode(pc);
         String instAddr = Integer.toUnsignedString(pc, 16);
 //        打印指令操作码
-        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.assemblyString);
-
-//        if (inst.assemblyString.trim().equals("jal x0 0(x0)")) {
-//            return ;
-//        }
+//        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.assemblyString);
         switch (inst.opcode) {
             // R-type instructions
             case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND

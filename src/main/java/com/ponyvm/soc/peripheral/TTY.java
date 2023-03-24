@@ -30,22 +30,16 @@ public class TTY implements Addressable {
 
     @Override
     public void storeByte(int addr, int data) {
-        if (addr==0xFF){
-            print(data);
-        }
+        print(data);
     }
 
     @Override
     public void storeHalfWord(int addr, short data) {
-        if (addr==0xFF){
-            print(data);
-        }
+        print(data);
     }
 
     @Override
     public void storeWord(int addr, int data) {
-        if (addr==0xFF){
-            print(data);
-        }
+        print(data);
     }
 }

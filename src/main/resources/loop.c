@@ -1,4 +1,4 @@
-void main(void)
+int main(void)
 {
 	int len = 100;
 	int _sum = 0;
@@ -8,4 +8,5 @@ void main(void)
 	//打印地址
 	unsigned int *tty = (unsigned int *)0x000000FF;
 	*tty = _sum;
+	return _sum;
 }
