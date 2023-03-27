@@ -6,7 +6,7 @@ import com.ponyvm.soc.internal.sysbus.SysBus;
 import com.ponyvm.soc.peripheral.TTY;
 import com.ponyvm.soc.core.CPU;
 
-public class PonySoc extends RV32I {
+public class PonySoc extends RV32 {
 
     private int SRAM_SIZE = 0x30000;//192MB
 

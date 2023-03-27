@@ -1,7 +1,7 @@
 /* File: Main.java
  * Authors: Marc Sun Bøg & Simon Amtoft Pedersen
  *
- * The following file is the main file for the RISCV-Simulator of the RV32I instructions.
+ * The following file is the main file for the RISCV-Simulator of the RV32 instructions.
  * The file starts the GUI application, and loads Layout.fxml.
  */
 package com.ponyvm;

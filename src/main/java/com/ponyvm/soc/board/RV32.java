@@ -10,7 +10,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-public class RV32I implements Soc {
+public class RV32 implements Soc {
     public String NAME;
 
     public String VERSION;
