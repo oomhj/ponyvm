@@ -65,7 +65,7 @@ public class Instruction {
         return (b20 << 20 | b12to19 << 12 | b11 << 11 | b1to10 << 1);
     }
 
-    private String toAssemblyString() {
+    public String toAssemblyString() {
         String instr = "", arg1 = "", arg2 = "", arg3 = "";
         switch (opcode) {
             // R-type instructions

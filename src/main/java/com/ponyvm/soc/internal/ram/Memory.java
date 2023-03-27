@@ -2,13 +2,12 @@ package com.ponyvm.soc.internal.ram;
 
 import com.ponyvm.soc.internal.sysbus.Addressable;
 
+/**
+ * 数据以小端进行保存
+ */
 public class Memory implements Addressable {
     private byte[] memory;
 
-    /**
-     * Constructor for Memory
-     * Initializes as a byte array of size given by argument
-     */
     public Memory(int capacity) {
         memory = new byte[capacity];
     }

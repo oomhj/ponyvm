@@ -43,10 +43,10 @@ public class CPU {
         Instruction inst = InstructionDecode(pc);
         String instAddr = Integer.toUnsignedString(pc, 16);
 //        打印指令操作码
-//        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.assemblyString);
+//        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.toAssemblyString());
         switch (inst.opcode) {
-            // R-type instructions
-            case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND
+            // R-type instructions 包含 RVI RVM
+            case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND /MUL /MULH /MULHSU /MULHU /DIV /DIVU /REM /REMU
                 rType(inst);
                 break;
 
@@ -101,7 +101,7 @@ public class CPU {
      */
     private void rType(Instruction inst) {
         switch (inst.funct3) {
-            case 0b000: // ADD / SUB
+            case 0b000: // ADD / SUB /MUL
                 switch (inst.funct7) {
                     case 0b0000000: // ADD
                         reg[inst.rd] = reg[inst.rs1] + reg[inst.rs2];
@@ -109,23 +109,55 @@ public class CPU {
                     case 0b0100000: // SUB
                         reg[inst.rd] = reg[inst.rs1] - reg[inst.rs2];
                         break;
+                    case 0b0000001: // MUL 有符号*有符号 低32位
+                        reg[inst.rd] = reg[inst.rs1] * reg[inst.rs2];
+                        break;
                 }
                 break;
-            case 0b001: // SLL
-                reg[inst.rd] = reg[inst.rs1] << reg[inst.rs2];
+            case 0b001: // SLL /MULH
+                switch (inst.funct7) {
+                    case 0b0000000: // SLL
+                        reg[inst.rd] = reg[inst.rs1] << reg[inst.rs2];
+                        break;
+                    case 0b0000001: // MULH 有符号*有符号 高32位
+                        reg[inst.rd] = (int) (((long) reg[inst.rs1]) * reg[inst.rs2] >> 32);
+                        break;
+                }
                 break;
-            case 0b010: // SLT
-                if (reg[inst.rs1] < reg[inst.rs2]) reg[inst.rd] = 1;
-                else reg[inst.rd] = 0;
+            case 0b010://SLT MULHSU
+                switch (inst.funct7) {
+                    case 0b0000000: // SLT
+                        if (reg[inst.rs1] < reg[inst.rs2]) reg[inst.rd] = 1;
+                        else reg[inst.rd] = 0;
+                        break;
+                    case 0b0000001: // MULHSU 有符号*无符号 高32位
+                        reg[inst.rd] = (int) ((reg[inst.rs1] * Integer.toUnsignedLong(reg[inst.rs2])) >> 32);
+                        break;
+                }
                 break;
             case 0b011: // SLTU
-                if (Integer.toUnsignedLong(reg[inst.rs1]) < Integer.toUnsignedLong(reg[inst.rs2])) reg[inst.rd] = 1;
-                else reg[inst.rd] = 0;
+                switch (inst.funct7) {
+                    case 0b0000000: //SLTU
+                        if (Integer.toUnsignedLong(reg[inst.rs1]) < Integer.toUnsignedLong(reg[inst.rs2]))
+                            reg[inst.rd] = 1;
+                        else reg[inst.rd] = 0;
+                        break;
+                    case 0b0000001: // MULHU 无符号*无符号 高32位
+                        reg[inst.rd] = (int) ((Integer.toUnsignedLong(reg[inst.rs1]) * Integer.toUnsignedLong(reg[inst.rs2])) >> 32);
+                        break;
+                }
                 break;
-            case 0b100: // XOR
-                reg[inst.rd] = reg[inst.rs1] ^ reg[inst.rs2];
+            case 0b100: // XOR /DIV
+                switch (inst.funct7) {
+                    case 0b0000000: //XOR
+                        reg[inst.rd] = reg[inst.rs1] ^ reg[inst.rs2];
+                        break;
+                    case 0b0000001: // DIV
+                        reg[inst.rd] = reg[inst.rs1] / reg[inst.rs2];
+                        break;
+                }
                 break;
-            case 0b101: // SRL / SRA
+            case 0b101: // SRL / SRA /DIV
                 switch (inst.funct7) {
                     case 0b0000000: // SRL
                         reg[inst.rd] = reg[inst.rs1] >>> reg[inst.rs2];
@@ -133,13 +165,30 @@ public class CPU {
                     case 0b0100000: // SRA
                         reg[inst.rd] = reg[inst.rs1] >> reg[inst.rs2];
                         break;
+                    case 0b0000001: // DIVU
+                        reg[inst.rd] = (int) ((Integer.toUnsignedLong(reg[inst.rs1]) / Integer.toUnsignedLong(reg[inst.rs2])));
+                        break;
                 }
                 break;
             case 0b110: // OR
-                reg[inst.rd] = reg[inst.rs1] | reg[inst.rs2];
+                switch (inst.funct7) {
+                    case 0b0000000: // OR
+                        reg[inst.rd] = reg[inst.rs1] | reg[inst.rs2];
+                        break;
+                    case 0b0000001: // REM
+                        reg[inst.rd] = reg[inst.rs1] % reg[inst.rs2];
+                        break;
+                }
                 break;
-            case 0b111: // AND
-                reg[inst.rd] = reg[inst.rs1] & reg[inst.rs2];
+            case 0b111: // AND /REMU
+                switch (inst.funct7) {
+                    case 0b0000000: // AND
+                        reg[inst.rd] = reg[inst.rs1] & reg[inst.rs2];
+                        break;
+                    case 0b0000001: // REMU
+                        reg[inst.rd] = (int) ((Integer.toUnsignedLong(reg[inst.rs1]) % Integer.toUnsignedLong(reg[inst.rs2])));
+                        break;
+                }
                 break;
         }
         pc += 4;
