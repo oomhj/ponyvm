@@ -6,7 +6,7 @@ int main(void)
 	    _sum += i;
 	}
 	//打印地址
-	unsigned int *tty = (unsigned int *)0x000000FF;
-	*tty = _sum;
+//	unsigned int *tty = (unsigned int *)0x000000FF;
+//	*tty = _sum;
 	return _sum;
 }

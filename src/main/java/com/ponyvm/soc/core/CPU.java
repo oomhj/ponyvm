@@ -2,6 +2,7 @@ package com.ponyvm.soc.core;
 
 import com.ponyvm.soc.internal.sysbus.Addressable;
 
+//符号扩展sign-extend（$：用最左面的bit(bit15)填充扩展的高16bit），也可能是零扩展zero-extend（$：用0填充扩展的高16bit）——这取决于具体的指令。一般而言，算术指令进行符号扩展sign-extend，而逻辑指令进行零扩展zero-extend。
 public class CPU {
     int pc = 0;                     // 程序上计数器
     int prevPc;                     // 上一条指令
@@ -22,6 +23,10 @@ public class CPU {
         this.stop = false;
     }
 
+    public boolean isRunning() {
+        return !this.stop;
+    }
+
 //    private Instruction InstructionDecode(int pc) {
 //        Instruction instr = I_CACHE.get(pc);
 //        if (instr == null) {
@@ -34,19 +39,19 @@ public class CPU {
     public int launch(int EntryAddr) {
         pc = EntryAddr;
         stop = false;
-        while (true) {
+        while (isRunning()) {
             int instruction = SYS_BUS.getWord(pc);
             if ((instruction & 0x03) == 3) {
                 executeInstruction32(instruction);
             } else {
-                executeInstruction16(instruction);
-
+                executeInstruction16(instruction & 0xFFFF);
             }
         }
+        return reg[10];
     }
 
     public boolean executeInstruction16(int instruction) {
-        System.out.print(Integer.toUnsignedString(pc, 16) + ":" + Integer.toUnsignedString(instruction, 16)+":");
+        System.out.print(Integer.toUnsignedString(pc, 16) + ":" + Integer.toUnsignedString(instruction, 16) + ":");
         short inst_opcode = (short) ((instruction >> 0) & 0x3);
         short inst_rd = (short) ((instruction >> 7) & 0x1f);
         short inst_rs1 = (short) ((instruction >> 7) & 0x1f);
@@ -59,8 +64,7 @@ public class CPU {
         short inst_imm8 = (short) (((instruction >> 7) & (0x7 << 3)) | ((instruction << 1) & (0x3 << 6)));
         short inst_imm9 = (short) (((instruction >> 2) & (0x3 << 3)) | ((instruction >> 7) & (1 << 5)) | ((instruction << 4) & (0x7 << 6)));
         short inst_imm10 = (short) (((instruction >> 4) & (1 << 2)) | ((instruction >> 2) & (1 << 3)) | ((instruction >> 7) & (0x3 << 4)) | ((instruction >> 1) & (0x7 << 6)));
-        short inst_imm12 = (short) (((instruction >> 2) & (0x7 << 1)) | ((instruction >> 7) & (1 << 4)) | ((instruction << 3) & (1 << 5))
-                | ((instruction >> 1) & (0x2d << 6)) | ((instruction << 1) & (1 << 7)) | ((instruction << 2) & (1 << 10)));
+        short inst_imm12 = (short) (((instruction >> 2) & (0x7 << 1)) | ((instruction >> 7) & (1 << 4)) | ((instruction << 3) & (1 << 5)) | ((instruction >> 1) & (0x2d << 6)) | ((instruction << 1) & (1 << 7)) | ((instruction << 2) & (1 << 10)));
         short inst_imm18 = (short) (((instruction << 5) & (1 << 17)) | ((instruction << 10) & (0x1f << 12)));
         short inst_funct2 = (short) ((instruction >> 10) & 0x3);
         short inst_funct3 = (short) ((instruction >> 13) & 0x7);
@@ -70,7 +74,7 @@ public class CPU {
             case 0b00:
                 switch (inst_funct3) {
                     case 0b000:
-                        System.out.println("c.addi4spn");
+                        System.out.println("c.addi4spn " + inst_rds + " x2 " + inst_imm10);
                         reg[8 + inst_rds] = reg[2] + inst_imm10;
                         break; // c.addi4spn
 //                    case 1: // c.fld
@@ -89,37 +93,42 @@ public class CPU {
 //                        SYS_BUS.storeWord(reg[8 + inst_rs1s] + inst_imm8 + 4, (int) (fdreg[8 + inst_rs2s] >> 32f));
 //                        break;
                     case 0b110:
-                        System.out.println("c.sw");
+                        System.out.println("c.sw x" + (8 + inst_rs2s) + " " + inst_imm7 + "(x" + (8 + inst_rs1s) + ") (sw x" + (8 + inst_rs2s) + " " + inst_imm7 + "(x" + (8 + inst_rs1s) + "))");
                         SYS_BUS.storeWord(reg[8 + inst_rs1s] + inst_imm7, reg[8 + inst_rs2s]);
-                        break; //
+                        break; //c.sw Expansion:sw rs2’,offset[6:2](rs1’)
 //                    case 7:
 //                        SYS_BUS.storeWord(reg[8 + inst_rs1s] + inst_imm7, (int) fdreg[8 + inst_rs2s]);
 //                        break; // c.fsw
+                    default:
+                        System.out.println("未知指令");
+                        break;
                 }
                 break;
             case 0b01:
                 switch (inst_funct3) {
                     case 0b000:
-                        System.out.println("c.addi");
-                        reg[inst_rd] += signed_extend(inst_imm6, 6);
-                        break; //c.addi
+                        int sext_imm6 = signed_extend(inst_imm6, 6);
+                        System.out.println("c.addi x" + inst_rd + " " + sext_imm6 + " (addi x" + inst_rd + " x" + inst_rd + " " + sext_imm6 + ")");
+                        reg[inst_rd] += sext_imm6;
+                        break; //c.addi Expansion:addi rd, rd, nzimm[5:0]
                     case 0b001:
-                        System.out.println("c.jal");
+                        int sext_imm12 = signed_extend(inst_imm12, 12);
+                        System.out.println("c.jal " + sext_imm12 + " (jal x1 " + sext_imm12 + "(x0))");
                         reg[1] = pc + 2;
-                        pc += signed_extend(inst_imm12, 12);
+                        pc += sext_imm12;
                         bflag = 1;
-                        break;// c.jal
+                        break;// c.jal Expansion:jal x1, offset[11:1]
                     case 0b010:
-                        System.out.println("c.li");
-                        reg[inst_rd] = signed_extend(inst_imm6, 6);
-                        break; // c.li
+                        sext_imm6 = signed_extend(inst_imm6, 6);
+                        System.out.println("c.li x" + inst_rd + " " + sext_imm6 + " (addi x" + inst_rd + " x0 " + sext_imm6 + ")");
+                        reg[inst_rd] = sext_imm6;
+                        break; // c.li Expansion:addi rd,x0,imm[5:0]
                     case 0b011:
-                        System.out.println("c.addi16sp");
                         if (inst_rd == 2) { // c.addi16sp
-                            temp = ((instruction >> 2) & (1 << 4)) | ((instruction << 3) & (1 << 5)) | ((instruction << 1) & (1 << 6))
-                                    | ((instruction << 4) & (0x3 << 7)) | ((instruction >> 3) & (1 << 9));
+                            System.out.println("c.addi16sp");
+                            temp = ((instruction >> 2) & (1 << 4)) | ((instruction << 3) & (1 << 5)) | ((instruction << 1) & (1 << 6)) | ((instruction << 4) & (0x3 << 7)) | ((instruction >> 3) & (1 << 9));
                             reg[inst_rd] += signed_extend(temp, 10);
-                        } else { //
+                        } else { //c.lui
                             System.out.println("c.lui");
                             reg[inst_rd] = signed_extend(inst_imm18, 18);
                         }
@@ -135,13 +144,14 @@ public class CPU {
                                 reg[8 + inst_rs1s] = (int) reg[8 + inst_rs1s] >> inst_imm6;
                                 break; // c.srai
                             case 0b10:
-                                System.out.println("c.andi");
-                                reg[8 + inst_rs1s] &= signed_extend(inst_imm6, 6);
-                                break; // c.andi
+                                sext_imm6 = signed_extend(inst_imm6, 6);
+                                System.out.println("c.andi x" + (8 + inst_rs1s) + " " + sext_imm6 + " (andi x" + (8 + inst_rs1s) + " x" + (8 + inst_rs1s) + " " + sext_imm6 + ")");
+                                reg[8 + inst_rs1s] &= sext_imm6;
+                                break; // c.andi Expansion:andi rd’,rd’,imm[5:0]
                             case 0b11:
                                 switch ((instruction >> 5) & 3) {
                                     case 0b00:
-                                        System.out.println("c.sub");
+                                        System.out.println("c.sub x" + (8 + inst_rs1s) + " x" + (8 + inst_rs1s) + " x" + (8 + inst_rs2s));
                                         reg[8 + inst_rs1s] -= reg[8 + inst_rs2s];
                                         break; // c.sub
                                     case 0b01:
@@ -160,20 +170,24 @@ public class CPU {
                                 break;
                         }
                         break;
-                    case 0b101:
-                        System.out.println("c.j");
-                        pc += signed_extend(inst_imm12, 12);
+                    case 0b101:// c.j Expansion:jal x0,offset[11:1]
+                        sext_imm12 = signed_extend(inst_imm12, 12);
+                        System.out.println("c.j " + sext_imm12 + " (jal x0 " + sext_imm12 + ")");
+                        pc += sext_imm12;
                         bflag = 1;
-                        break; // c.j
-                    case 0b110: // c.beqz
-                    case 0b111: // c.bnez
-                        System.out.println("c.bnez");
+                        break;
+                    case 0b110: // c.beqz Expansion: beq rs1’,x0,offset[8:1]
+                    case 0b111: // c.bnez Expansion: bne rs1’,x0,offset[8:1]
+                        temp = ((instruction >> 2) & (0x3 << 1)) | ((instruction >> 7) & (0x3 << 3)) | ((instruction << 3) & (1 << 5)) | ((instruction << 1) & (0x3 << 6)) | ((instruction >> 4) & (1 << 8));
+                        int sext_temp9 = signed_extend(temp, 9);
+                        System.out.println("c." + (inst_funct3 == 6 ? "beqz" : "bnez") + " x" + (8 + inst_rs1s) + " " + sext_temp9 + " (" + (inst_funct3 == 6 ? "beq" : "bne") + " x" + (8 + inst_rs1s) + " x0 " + sext_temp9 + ")");
                         if (inst_funct3 == 6 && reg[8 + inst_rs1s] == 0 || inst_funct3 == 7 && reg[8 + inst_rs1s] != 0) {
-                            temp = ((instruction >> 2) & (0x3 << 1)) | ((instruction >> 7) & (0x3 << 3)) | ((instruction << 3) & (1 << 5))
-                                    | ((instruction << 1) & (0x3 << 6)) | ((instruction >> 4) & (1 << 8));
-                            pc += signed_extend(temp, 9);
+                            pc += sext_temp9;
                             bflag = 1;
                         }
+                        break;
+                    default:
+                        System.out.println("未知指令");
                         break;
                 }
                 break;
@@ -188,6 +202,10 @@ public class CPU {
 //                        fdreg[inst_rd] |= SYS_BUS.getWord(reg[2] + inst_imm9 + 4) << 32;
 //                        break;
                     case 0b010: // c.lwsp
+                        System.out.println("c.lwsp");
+                        temp = ((instruction >> 2) & (0x7 << 2)) | ((instruction >> 7) & (1 << 5)) | ((instruction << 4) & (0x3 << 6));
+                        reg[inst_rd] = SYS_BUS.getWord(reg[2] + temp); // c.lwsp
+                        break;
 //                    case 3: // c.flwsp
 //                        temp = ((instruction >> 2) & (0x7 << 2)) | ((instruction >> 7) & (1 << 5)) | ((instruction << 4) & (0x3 << 6));
 //                        if (inst_funct3 == 2) reg[inst_rd] = SYS_BUS.getWord(reg[2] + temp); // c.lwsp
@@ -195,12 +213,12 @@ public class CPU {
 //                        break;
                     case 0b100:
                         if ((instruction & (1 << 12)) == 0) {
-                            if (inst_rs2 == 0) { // c.jr
-                                System.out.println("c.jr");
+                            if (inst_rs2 == 0) { // c.jr Expansion:jalr x0,rs1,0
+                                System.out.println("c.jr x" + inst_rs1 + " (jalr x0 x" + inst_rs1 + " 0)");
                                 pc = reg[inst_rs1];
                                 bflag = 1;
-                            } else { // c.mv
-                                System.out.println("c.mv");
+                            } else { // c.mv Expansion:add rd, x0, rs2
+                                System.out.println("c.mv x" + inst_rd + " x" + inst_rs2 + " (add x" + inst_rd + " x0 x" + inst_rs2 + ")");
                                 reg[inst_rd] = reg[inst_rs2];
                             }
                         } else {
@@ -212,8 +230,8 @@ public class CPU {
                                 pc = reg[inst_rs1];
                                 reg[1] = temp;
                                 bflag = 1;
-                            } else { // c.add
-                                System.out.println("c.add");
+                            } else { // c.add Expansion:add rd,rd,rs2
+                                System.out.println("c.add x" + inst_rd + " x" + inst_rs2 + " (add x" + inst_rd + " x" + inst_rd + " x" + inst_rs2 + ")");
                                 reg[inst_rd] += reg[inst_rs2];
                             }
                         }
@@ -223,10 +241,17 @@ public class CPU {
 //                        SYS_BUS.storeWord(reg[2] + temp + 0, (int) (fdreg[inst_rs2] >> 0));
 //                        SYS_BUS.storeWord(reg[2] + temp + 4, (int) (fdreg[inst_rs2] >> 32));
 //                        break;
-                    case 0b110: // c.swsp
-//                    case 7: // c.fswsp
+                    case 0b110: // c.swsp Expansion: sw rs2,offset[7:2](x2)
+                        temp = ((instruction >> 7) & (0xf << 2)) | ((instruction >> 1) & (0x3 << 6));
+                        System.out.println("c.swsp x" + inst_rs2 + " " + temp + "(x2) (sw x" + inst_rs2 + " " + temp + "(x2))");
+                        SYS_BUS.storeWord(reg[2] + temp, inst_funct3 == 6 ? reg[inst_rs2] : (int) fdreg[inst_rs2]);
+                        break;
+//                    case 0b111: // c.fswsp
 //                        temp = ((instruction >> 7) & (0xf << 2)) | ((instruction >> 1) & (0x3 << 6));
 //                        SYS_BUS.storeWord(reg[2] + temp, inst_funct3 == 6 ? reg[inst_rs2] : (int) fdreg[inst_rs2]);
+//                        break;
+                    default:
+                        System.out.println("未知指令");
                         break;
                 }
                 break;
@@ -235,8 +260,9 @@ public class CPU {
         return true;
     }
 
-    static int signed_extend(int a, int size) {
-        return ((a & (1 << (size - 1))) == 1) ? (a | ~((1 << size) - 1)) : a;
+    private int signed_extend(int a, int size) {
+//        return (a & (1 << (size - 1))) == 1 ? (a | ~((1 << size) - 1)) : a;
+        return (a >> (size - 1) & 1) == 1 ? (a | ~((1 << size) - 1)) : a;
     }
 
     public boolean executeInstruction32(int instruction) {
@@ -244,7 +270,7 @@ public class CPU {
         Instruction inst = new Instruction(instruction);
         String instAddr = Integer.toUnsignedString(pc, 16);
 //        打印指令操作码
-        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + inst.toAssemblyString());
+        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + Integer.toUnsignedString(instruction, 16) + ":" + inst.toAssemblyString());
         switch (inst.opcode) {
             // R-type instructions 包含 RVI RVM
             case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND /MUL /MULH /MULHSU /MULHU /DIV /DIVU /REM /REMU
@@ -472,6 +498,7 @@ public class CPU {
      * i-Type ECALL instructions
      */
     private void iTypeEcall() {
+        this.stop = true;
         System.out.println("ECALL x10:" + reg[10] + ",x11:" + reg[11]);
 //        switch (reg[10]) {
 //            case 0:     // print_int
