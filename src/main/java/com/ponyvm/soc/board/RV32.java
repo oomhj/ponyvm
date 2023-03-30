@@ -20,6 +20,26 @@ public class RV32 implements Soc {
     public CPU CORE;
 
     @Override
+    public String getNAME() {
+        return this.NAME;
+    }
+
+    @Override
+    public String getVERSION() {
+        return this.VERSION;
+    }
+
+    @Override
+    public SysBus getSYS_BUS() {
+        return this.SYS_BUS;
+    }
+
+    @Override
+    public CPU getCORE() {
+        return this.CORE;
+    }
+
+    @Override
     public int launchROM(File rom) throws IOException {
         ELFFile elfFile = loadELFFile(rom);
 //        String elfinfo = elfFile.toString();

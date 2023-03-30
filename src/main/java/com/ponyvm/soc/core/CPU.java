@@ -40,7 +40,7 @@ public class CPU {
         pc = EntryAddr;
         stop = false;
         while (isRunning()) {
-            int instruction = SYS_BUS.getWord(pc);
+            int instruction = instructionDecode(pc);
             if ((instruction & 0x03) == 3) {
                 executeInstruction32(instruction);
             } else {
@@ -50,208 +50,156 @@ public class CPU {
         return reg[10];
     }
 
-    public boolean executeInstruction16(int instruction) {
-        System.out.print(Integer.toUnsignedString(pc, 16) + ":" + Integer.toUnsignedString(instruction, 16) + ":");
-        short inst_opcode = (short) ((instruction >> 0) & 0x3);
-        short inst_rd = (short) ((instruction >> 7) & 0x1f);
-        short inst_rs1 = (short) ((instruction >> 7) & 0x1f);
-        short inst_rs2 = (short) ((instruction >> 2) & 0x1f);
-        short inst_rs1s = (short) ((instruction >> 7) & 0x7);
-        short inst_rs2s = (short) ((instruction >> 2) & 0x7);
-        short inst_rds = (short) ((instruction >> 2) & 0x7);
-        short inst_imm6 = (short) (((instruction >> 2) & 0x1f) | ((instruction >> 7) & (1 << 5)));
-        short inst_imm7 = (short) (((instruction >> 4) & (1 << 2)) | ((instruction >> 7) & (0x7 << 3)) | ((instruction << 1) & (1 << 6)));
-        short inst_imm8 = (short) (((instruction >> 7) & (0x7 << 3)) | ((instruction << 1) & (0x3 << 6)));
-        short inst_imm9 = (short) (((instruction >> 2) & (0x3 << 3)) | ((instruction >> 7) & (1 << 5)) | ((instruction << 4) & (0x7 << 6)));
-        short inst_imm10 = (short) (((instruction >> 4) & (1 << 2)) | ((instruction >> 2) & (1 << 3)) | ((instruction >> 7) & (0x3 << 4)) | ((instruction >> 1) & (0x7 << 6)));
-        short inst_imm12 = (short) (((instruction >> 2) & (0x7 << 1)) | ((instruction >> 7) & (1 << 4)) | ((instruction << 3) & (1 << 5)) | ((instruction >> 1) & (0x2d << 6)) | ((instruction << 1) & (1 << 7)) | ((instruction << 2) & (1 << 10)));
-        short inst_imm18 = (short) (((instruction << 5) & (1 << 17)) | ((instruction << 10) & (0x1f << 12)));
-        short inst_funct2 = (short) ((instruction >> 10) & 0x3);
-        short inst_funct3 = (short) ((instruction >> 13) & 0x7);
-        int bflag = 0, temp;
+    private int instructionDecode(int pc) {
+        Integer instr = I_CACHE.get(pc);
+        if (instr == null) {
+            instr = SYS_BUS.getWord(pc);
+            I_CACHE.put(pc, instr);
+        }
+        return instr;
+    }
 
-        switch (inst_opcode) {
+    public boolean executeInstruction16(int instruction) {
+        Instruction16 instr16 = new Instruction16(instruction);
+        String instAddr = Integer.toUnsignedString(pc, 16);
+//        System.out.println(instAddr + ":" + Integer.toUnsignedString(instruction, 16) + ":" + instr16.toAssemblyString());
+        int bflag = 0, temp;
+        int rd, rs1, rs2, rds, rs1s, rs2s, imm;
+        switch (instr16.opcode) {
             case 0b00:
-                switch (inst_funct3) {
+                switch (instr16.funct3) {
                     case 0b000:
-                        System.out.println("c.addi4spn " + inst_rds + " x2 " + inst_imm10);
-                        reg[8 + inst_rds] = reg[2] + inst_imm10;
-                        break; // c.addi4spn
-//                    case 1: // c.fld
-//                        fdreg[8 + inst_rds] = SYS_BUS.getWord(reg[8 + inst_rs1s] + inst_imm8 + 0) << 0;
-//                        fdreg[8 + inst_rds] |= SYS_BUS.getWord(reg[8 + inst_rs1s] + inst_imm8 + 4) << 32;
-//                        break;
+                        // c.addi4spn Expansion:addi rd’,x2,nzuimm
+                        rds = (instruction >> 2) & 0b111;
+                        //nzuimm[5:4|9:6|2|3]
+                        imm = instr16.imm10;
+                        reg[8 + rds] = reg[2] + imm;
+                        break;
                     case 0b010:
-                        System.out.println("c.lw");
-                        reg[8 + inst_rds] = SYS_BUS.getWord(reg[8 + inst_rs1s] + inst_imm7);
-                        break; //
-//                    case 0b011:
-//                        fdreg[8 + inst_rds] = SYS_BUS.getWord(reg[8 + inst_rs1s] + inst_imm7);
-//                        break; // c.flw
-//                    case 5: // c.fsd
-//                        SYS_BUS.storeWord(reg[8 + inst_rs1s] + inst_imm8 + 0, (int) (fdreg[8 + inst_rs2s] >> 0f));
-//                        SYS_BUS.storeWord(reg[8 + inst_rs1s] + inst_imm8 + 4, (int) (fdreg[8 + inst_rs2s] >> 32f));
-//                        break;
+                        //c.lw Expansion:lw rd’,offset[6:2](rs1’)
+                        imm = instr16.imm7;
+                        reg[8 + instr16.rds] = SYS_BUS.getWord(reg[8 + instr16.rs1s] + imm);
+                        break;
                     case 0b110:
-                        System.out.println("c.sw x" + (8 + inst_rs2s) + " " + inst_imm7 + "(x" + (8 + inst_rs1s) + ") (sw x" + (8 + inst_rs2s) + " " + inst_imm7 + "(x" + (8 + inst_rs1s) + "))");
-                        SYS_BUS.storeWord(reg[8 + inst_rs1s] + inst_imm7, reg[8 + inst_rs2s]);
-                        break; //c.sw Expansion:sw rs2’,offset[6:2](rs1’)
-//                    case 7:
-//                        SYS_BUS.storeWord(reg[8 + inst_rs1s] + inst_imm7, (int) fdreg[8 + inst_rs2s]);
-//                        break; // c.fsw
+                        //c.sw Expansion:sw rs2’,offset[6:2](rs1’)
+                        imm = instr16.imm7;
+                        SYS_BUS.storeWord(reg[8 + instr16.rs1s] + imm, reg[8 + instr16.rs2s]);
+                        break;
                     default:
-                        System.out.println("未知指令");
                         break;
                 }
                 break;
             case 0b01:
-                switch (inst_funct3) {
+                switch (instr16.funct3) {
                     case 0b000:
-                        int sext_imm6 = signed_extend(inst_imm6, 6);
-                        System.out.println("c.addi x" + inst_rd + " " + sext_imm6 + " (addi x" + inst_rd + " x" + inst_rd + " " + sext_imm6 + ")");
-                        reg[inst_rd] += sext_imm6;
-                        break; //c.addi Expansion:addi rd, rd, nzimm[5:0]
+                        //c.addi Expansion:addi rd, rd, nzimm[5:0]
+                        int sext_imm6 = signed_extend(instr16.imm6, 6);
+                        reg[instr16.rd] += sext_imm6;
+                        break;
                     case 0b001:
-                        int sext_imm12 = signed_extend(inst_imm12, 12);
-                        System.out.println("c.jal " + sext_imm12 + " (jal x1 " + sext_imm12 + "(x0))");
+                        // c.jal Expansion:jal x1, offset[11:1]
+                        int sext_imm12 = signed_extend(instr16.imm12, 12);
                         reg[1] = pc + 2;
                         pc += sext_imm12;
                         bflag = 1;
-                        break;// c.jal Expansion:jal x1, offset[11:1]
+                        break;
                     case 0b010:
-                        sext_imm6 = signed_extend(inst_imm6, 6);
-                        System.out.println("c.li x" + inst_rd + " " + sext_imm6 + " (addi x" + inst_rd + " x0 " + sext_imm6 + ")");
-                        reg[inst_rd] = sext_imm6;
+                        sext_imm6 = signed_extend(instr16.imm6, 6);
+                        reg[instr16.rd] = sext_imm6;
                         break; // c.li Expansion:addi rd,x0,imm[5:0]
                     case 0b011:
-                        if (inst_rd == 2) { // c.addi16sp
-                            System.out.println("c.addi16sp");
+                        if (instr16.rd == 2) { // c.addi16sp Expansion:addi x2,x2, nzimm[9:4]
                             temp = ((instruction >> 2) & (1 << 4)) | ((instruction << 3) & (1 << 5)) | ((instruction << 1) & (1 << 6)) | ((instruction << 4) & (0x3 << 7)) | ((instruction >> 3) & (1 << 9));
-                            reg[inst_rd] += signed_extend(temp, 10);
-                        } else { //c.lui
-                            System.out.println("c.lui");
-                            reg[inst_rd] = signed_extend(inst_imm18, 18);
+                            int sext_imm10 = signed_extend(temp, 10);
+                            reg[2] += sext_imm10;
+                        } else { //c.lui Expansion: lui rd,nzuimm[17:12]
+                            int sext_imm18 = signed_extend(instr16.imm18, 18);
+                            reg[instr16.rd] = sext_imm18;
                         }
                         break;
                     case 0b100:
-                        switch (inst_funct2) {
+                        switch (instr16.funct2) {
                             case 0b00:
-                                System.out.println("c.srli");
-                                reg[8 + inst_rs1s] = (int) reg[8 + inst_rs1s] >> inst_imm6;
-                                break; // c.srli
+                                // c.srli Expansion:srli rd’,rd’,shamt[5:0]
+                                int ShiftAmt = instr16.imm6 & 0x1F;
+                                reg[8 + instr16.rs1s] = reg[8 + instr16.rs1s] >>> ShiftAmt;
+                                break;
                             case 0b01:
-                                System.out.println("c.srai");
-                                reg[8 + inst_rs1s] = (int) reg[8 + inst_rs1s] >> inst_imm6;
-                                break; // c.srai
+                                // c.srai
+                                ShiftAmt = instr16.imm6 & 0x1F;
+                                reg[8 + instr16.rs1s] = reg[8 + instr16.rs1s] >>> ShiftAmt;
+                                break;
                             case 0b10:
-                                sext_imm6 = signed_extend(inst_imm6, 6);
-                                System.out.println("c.andi x" + (8 + inst_rs1s) + " " + sext_imm6 + " (andi x" + (8 + inst_rs1s) + " x" + (8 + inst_rs1s) + " " + sext_imm6 + ")");
-                                reg[8 + inst_rs1s] &= sext_imm6;
+                                imm = signed_extend(instr16.imm6, 6);
+                                reg[8 + instr16.rs1s] &= imm;
                                 break; // c.andi Expansion:andi rd’,rd’,imm[5:0]
                             case 0b11:
                                 switch ((instruction >> 5) & 3) {
                                     case 0b00:
-                                        System.out.println("c.sub x" + (8 + inst_rs1s) + " x" + (8 + inst_rs1s) + " x" + (8 + inst_rs2s));
-                                        reg[8 + inst_rs1s] -= reg[8 + inst_rs2s];
+                                        reg[8 + instr16.rs1s] -= reg[8 + instr16.rs2s];
                                         break; // c.sub
                                     case 0b01:
-                                        System.out.println("c.xor");
-                                        reg[8 + inst_rs1s] ^= reg[8 + inst_rs2s];
+                                        reg[8 + instr16.rs1s] ^= reg[8 + instr16.rs2s];
                                         break; // c.xor
                                     case 0b10:
-                                        System.out.println("c.or");
-                                        reg[8 + inst_rs1s] |= reg[8 + inst_rs2s];
+                                        reg[8 + instr16.rs1s] |= reg[8 + instr16.rs2s];
                                         break; // c.or
                                     case 0b11:
-                                        System.out.println("c.and");
-                                        reg[8 + inst_rs1s] &= reg[8 + inst_rs2s];
+                                        reg[8 + instr16.rs1s] &= reg[8 + instr16.rs2s];
                                         break; // c.and
                                 }
                                 break;
                         }
                         break;
                     case 0b101:// c.j Expansion:jal x0,offset[11:1]
-                        sext_imm12 = signed_extend(inst_imm12, 12);
-                        System.out.println("c.j " + sext_imm12 + " (jal x0 " + sext_imm12 + ")");
-                        pc += sext_imm12;
+                        imm = signed_extend(instr16.imm12, 12);
+                        pc += imm;
                         bflag = 1;
                         break;
                     case 0b110: // c.beqz Expansion: beq rs1’,x0,offset[8:1]
                     case 0b111: // c.bnez Expansion: bne rs1’,x0,offset[8:1]
-                        temp = ((instruction >> 2) & (0x3 << 1)) | ((instruction >> 7) & (0x3 << 3)) | ((instruction << 3) & (1 << 5)) | ((instruction << 1) & (0x3 << 6)) | ((instruction >> 4) & (1 << 8));
-                        int sext_temp9 = signed_extend(temp, 9);
-                        System.out.println("c." + (inst_funct3 == 6 ? "beqz" : "bnez") + " x" + (8 + inst_rs1s) + " " + sext_temp9 + " (" + (inst_funct3 == 6 ? "beq" : "bne") + " x" + (8 + inst_rs1s) + " x0 " + sext_temp9 + ")");
-                        if (inst_funct3 == 6 && reg[8 + inst_rs1s] == 0 || inst_funct3 == 7 && reg[8 + inst_rs1s] != 0) {
-                            pc += sext_temp9;
+                        imm = signed_extend(instr16.imm9, 9);
+                        if (instr16.funct3 == 6 && reg[8 + instr16.rs1s] == 0 || instr16.funct3 == 7 && reg[8 + instr16.rs1s] != 0) {
+                            pc += imm;
                             bflag = 1;
                         }
                         break;
                     default:
-                        System.out.println("未知指令");
                         break;
                 }
                 break;
             case 0b10:
-                switch (inst_funct3) {
+                switch (instr16.funct3) {
                     case 0b000:
-                        System.out.println("c.slli");
-                        reg[inst_rd] <<= inst_imm6;
+                        reg[instr16.rd] <<= instr16.imm6;
                         break; // c.slli
-//                    case 1: // c.fldsp
-//                        fdreg[inst_rd] = SYS_BUS.getWord(reg[2] + inst_imm9 + 0) << 0;
-//                        fdreg[inst_rd] |= SYS_BUS.getWord(reg[2] + inst_imm9 + 4) << 32;
-//                        break;
                     case 0b010: // c.lwsp
-                        System.out.println("c.lwsp");
-                        temp = ((instruction >> 2) & (0x7 << 2)) | ((instruction >> 7) & (1 << 5)) | ((instruction << 4) & (0x3 << 6));
-                        reg[inst_rd] = SYS_BUS.getWord(reg[2] + temp); // c.lwsp
+                        reg[instr16.rd] = SYS_BUS.getWord(reg[2] + instr16.lwspimm8); // c.lwsp
                         break;
-//                    case 3: // c.flwsp
-//                        temp = ((instruction >> 2) & (0x7 << 2)) | ((instruction >> 7) & (1 << 5)) | ((instruction << 4) & (0x3 << 6));
-//                        if (inst_funct3 == 2) reg[inst_rd] = SYS_BUS.getWord(reg[2] + temp); // c.lwsp
-//                        else fdreg[inst_rd] = SYS_BUS.getWord(reg[2] + temp); // c.flwsp
-//                        break;
                     case 0b100:
                         if ((instruction & (1 << 12)) == 0) {
-                            if (inst_rs2 == 0) { // c.jr Expansion:jalr x0,rs1,0
-                                System.out.println("c.jr x" + inst_rs1 + " (jalr x0 x" + inst_rs1 + " 0)");
-                                pc = reg[inst_rs1];
+                            if (instr16.rs2 == 0) { // c.jr Expansion:jalr x0,rs1,0
+                                pc = reg[instr16.rs1];
                                 bflag = 1;
                             } else { // c.mv Expansion:add rd, x0, rs2
-                                System.out.println("c.mv x" + inst_rd + " x" + inst_rs2 + " (add x" + inst_rd + " x0 x" + inst_rs2 + ")");
-                                reg[inst_rd] = reg[inst_rs2];
+                                reg[instr16.rd] = reg[instr16.rs2];
                             }
                         } else {
-                            if (inst_rs1 == 0 && inst_rs2 == 0) { // c.ebreak;
-                                System.out.println("c.ebreak");
-                            } else if (inst_rs2 == 0) { // c.jalr
-                                System.out.println("c.jalr");
+                            if (instr16.rs1 == 0 && instr16.rs2 == 0) { // c.ebreak;
+                            } else if (instr16.rs2 == 0) { // c.jalr
                                 temp = pc + 2;
-                                pc = reg[inst_rs1];
+                                pc = reg[instr16.rs1];
                                 reg[1] = temp;
                                 bflag = 1;
                             } else { // c.add Expansion:add rd,rd,rs2
-                                System.out.println("c.add x" + inst_rd + " x" + inst_rs2 + " (add x" + inst_rd + " x" + inst_rd + " x" + inst_rs2 + ")");
-                                reg[inst_rd] += reg[inst_rs2];
+                                reg[instr16.rd] += reg[instr16.rs2];
                             }
                         }
                         break;
-//                    case 5: // c.fsdsp
-//                        temp = ((instruction >> 7) & (0x7 << 3)) | ((instruction >> 1) & (0x7 << 6));
-//                        SYS_BUS.storeWord(reg[2] + temp + 0, (int) (fdreg[inst_rs2] >> 0));
-//                        SYS_BUS.storeWord(reg[2] + temp + 4, (int) (fdreg[inst_rs2] >> 32));
-//                        break;
                     case 0b110: // c.swsp Expansion: sw rs2,offset[7:2](x2)
-                        temp = ((instruction >> 7) & (0xf << 2)) | ((instruction >> 1) & (0x3 << 6));
-                        System.out.println("c.swsp x" + inst_rs2 + " " + temp + "(x2) (sw x" + inst_rs2 + " " + temp + "(x2))");
-                        SYS_BUS.storeWord(reg[2] + temp, inst_funct3 == 6 ? reg[inst_rs2] : (int) fdreg[inst_rs2]);
+                        SYS_BUS.storeWord(reg[2] + instr16.swspimm8, reg[instr16.rs2]);
                         break;
-//                    case 0b111: // c.fswsp
-//                        temp = ((instruction >> 7) & (0xf << 2)) | ((instruction >> 1) & (0x3 << 6));
-//                        SYS_BUS.storeWord(reg[2] + temp, inst_funct3 == 6 ? reg[inst_rs2] : (int) fdreg[inst_rs2]);
-//                        break;
                     default:
-                        System.out.println("未知指令");
                         break;
                 }
                 break;
@@ -267,10 +215,10 @@ public class CPU {
 
     public boolean executeInstruction32(int instruction) {
         prevPc = pc;
-        Instruction inst = new Instruction(instruction);
+        Instruction32 inst = new Instruction32(instruction);
         String instAddr = Integer.toUnsignedString(pc, 16);
 //        打印指令操作码
-        System.out.println(Integer.toUnsignedString(pc, 16) + ":" + Integer.toUnsignedString(instruction, 16) + ":" + inst.toAssemblyString());
+//        System.out.println(instAddr + ":" + Integer.toUnsignedString(instruction, 16) + ":" + inst.toAssemblyString());
         switch (inst.opcode) {
             // R-type instructions 包含 RVI RVM
             case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND /MUL /MULH /MULHSU /MULHU /DIV /DIVU /REM /REMU
@@ -326,7 +274,7 @@ public class CPU {
      * r-Type instructions:
      * ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND
      */
-    private void rType(Instruction inst) {
+    private void rType(Instruction32 inst) {
         switch (inst.funct3) {
             case 0b000: // ADD / SUB /MUL
                 switch (inst.funct7) {
@@ -425,7 +373,7 @@ public class CPU {
      * i-Type load instructions:
      * LB / LH / LW / LBU / LHU
      */
-    private void iTypeLoad(Instruction inst) {
+    private void iTypeLoad(Instruction32 inst) {
         int addr = reg[inst.rs1] + inst.imm; // Byte address
 
         switch (inst.funct3) {
@@ -454,7 +402,7 @@ public class CPU {
      * I-type integer instructions:
      * ADDI / SLTI / SLTIU / XORI / ORI / ANDI / SLLI / SRLI / SRAI
      */
-    private void iTypeInteger(Instruction inst) {
+    private void iTypeInteger(Instruction32 inst) {
         switch (inst.funct3) {
             case 0b000: // ADDI
                 reg[inst.rd] = reg[inst.rs1] + inst.imm;
@@ -536,7 +484,7 @@ public class CPU {
      * S-type instructions:
      * SB / SH / SW
      */
-    private void sType(Instruction inst) {
+    private void sType(Instruction32 inst) {
         int addr = reg[inst.rs1] + inst.imm;
         switch (inst.funct3) {
             case 0b000: // SB
@@ -556,7 +504,7 @@ public class CPU {
      * B-type instructions:
      * BEQ / BNE / BLT / BGE / BLTU / BGEU
      */
-    private void bType(Instruction inst) {
+    private void bType(Instruction32 inst) {
         int Imm = inst.imm;
         switch (inst.funct3) {
             case 0b000: // BEQ
