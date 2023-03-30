@@ -1,4 +1,4 @@
-Java实现的RSIC-V教学虚拟机。采用RV32IMC指令集
+Java实现的RISC-V架构教学虚拟机。采用RV32IMC指令集
 
 ponyvm-rv32i 构建打包
 
