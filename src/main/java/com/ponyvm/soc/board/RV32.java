@@ -54,6 +54,8 @@ public class RV32 implements Soc {
         int ret = this.CORE.launch(elfFile.HEADER.e_entry());
         time2 = System.currentTimeMillis();
         System.out.println("运行结束，耗时(ms)：" + (time2 - time1));
+        float s = (time2 - time1) / 1000f;
+        System.out.println("运行频率：" + this.CORE.frq / (1024 * 1024 * s) + "Mhz/s");
         return ret;
     }
 

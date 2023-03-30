@@ -6,7 +6,7 @@ mvn compile assembly:single
 
 ponyvm-rv32i 运行
 
-java -jar PonyVM-0.0.1.jar -f pi.bin
+java -jar PonyVM-0.2.5.jar -f pi.bin
 
 命令行 参数
 

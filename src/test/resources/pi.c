@@ -2,7 +2,7 @@ int main(){
 int i;
 double pi = 0;
 
-for(i = 0;i < 10000;i++){
+for(i = 0;i < 1000000;i++){
     pi += (4.0 * (i % 2 ? -1 : 1)) / (2 * i + 1);
 }
 return (int)(pi*1000000);

@@ -6,12 +6,15 @@ import com.ponyvm.soc.internal.sysbus.Addressable;
 public class CPU {
     int pc = 0;                     // 程序上计数器
     int prevPc;                     // 上一条指令
-    private Cache<Integer> I_CACHE; //指令缓存
+    private Cache<Instruction> I_CACHE; //指令缓存
+
     int[] reg = new int[32];        // 寄存器
     float[] fdreg = new float[32];  //浮点寄存器
     int[] csr = new int[0x1000];
     private Addressable SYS_BUS;    // 系统总线
     private boolean stop = true;
+
+    public int frq = 0;
 
     public CPU(Addressable bus, int SP) {
         this.SYS_BUS = bus;//配置总线
@@ -40,26 +43,33 @@ public class CPU {
         pc = EntryAddr;
         stop = false;
         while (isRunning()) {
-            int instruction = instructionDecode(pc);
-            if ((instruction & 0x03) == 3) {
-                executeInstruction32(instruction);
-            } else {
-                executeInstruction16(instruction & 0xFFFF);
+            Instruction instruction = instructionFetch(pc);
+            frq++;
+            if (instruction != null) {
+                instruction.execute();
             }
         }
         return reg[10];
     }
 
-    private int instructionDecode(int pc) {
-        Integer instr = I_CACHE.get(pc);
-        if (instr == null) {
-            instr = SYS_BUS.getWord(pc);
-            I_CACHE.put(pc, instr);
+    private Instruction instructionFetch(int pc) {
+        Instruction instruction = I_CACHE.get(pc);
+        if (instruction == null) {
+            int instrCode = SYS_BUS.getWord(pc);
+            if ((instrCode & 0x03) == 3) {
+                executeInstruction32(instrCode);
+            } else {
+                instruction = decodeInstruction16(instrCode & 0xFFFF);
+            }
+            if (instruction!=null){
+                I_CACHE.put(pc, instruction);
+            }
         }
-        return instr;
+        return instruction;
     }
 
-    public boolean executeInstruction16(int instruction) {
+    public Instruction decodeInstruction16(int instruction) {
+        Instruction instr = null;
         Instruction16 instr16 = new Instruction16(instruction);
         String instAddr = Integer.toUnsignedString(pc, 16);
 //        System.out.println(instAddr + ":" + Integer.toUnsignedString(instruction, 16) + ":" + instr16.toAssemblyString());
@@ -73,17 +83,35 @@ public class CPU {
                         rds = (instruction >> 2) & 0b111;
                         //nzuimm[5:4|9:6|2|3]
                         imm = instr16.imm10;
-                        reg[8 + rds] = reg[2] + imm;
+                        instr = new Instruction(rds, 0, imm) {
+                            @Override
+                            public void execute() {
+                                reg[8 + p1] = reg[2] + p3;
+                                pc += 2;
+                            }
+                        };
                         break;
                     case 0b010:
                         //c.lw Expansion:lw rd’,offset[6:2](rs1’)
                         imm = instr16.imm7;
-                        reg[8 + instr16.rds] = SYS_BUS.getWord(reg[8 + instr16.rs1s] + imm);
+                        instr = new Instruction(instr16.rds, instr16.rs1s, imm) {
+                            @Override
+                            public void execute() {
+                                reg[8 + p1] = SYS_BUS.getWord(reg[8 + p2] + p3);
+                                pc += 2;
+                            }
+                        };
                         break;
                     case 0b110:
                         //c.sw Expansion:sw rs2’,offset[6:2](rs1’)
                         imm = instr16.imm7;
-                        SYS_BUS.storeWord(reg[8 + instr16.rs1s] + imm, reg[8 + instr16.rs2s]);
+                        instr = new Instruction(instr16.rs1s, instr16.rs2s, imm) {
+                            @Override
+                            public void execute() {
+                                SYS_BUS.storeWord(reg[8 + p1] + p3, reg[8 + p2]);
+                                pc += 2;
+                            }
+                        };
                         break;
                     default:
                         break;
@@ -94,27 +122,57 @@ public class CPU {
                     case 0b000:
                         //c.addi Expansion:addi rd, rd, nzimm[5:0]
                         int sext_imm6 = signed_extend(instr16.imm6, 6);
-                        reg[instr16.rd] += sext_imm6;
+                        instr = new Instruction(instr16.rd, 0, sext_imm6) {
+                            @Override
+                            public void execute() {
+                                reg[p1] += p3;
+                                pc += 2;
+                            }
+                        };
                         break;
                     case 0b001:
                         // c.jal Expansion:jal x1, offset[11:1]
                         int sext_imm12 = signed_extend(instr16.imm12, 12);
-                        reg[1] = pc + 2;
-                        pc += sext_imm12;
-                        bflag = 1;
+                        instr = new Instruction(0, 0, sext_imm12) {
+                            @Override
+                            public void execute() {
+                                reg[1] = pc + 2;
+                                pc += p3;
+                            }
+                        };
                         break;
                     case 0b010:
+                        // c.li Expansion:addi rd,x0,imm[5:0]
                         sext_imm6 = signed_extend(instr16.imm6, 6);
-                        reg[instr16.rd] = sext_imm6;
-                        break; // c.li Expansion:addi rd,x0,imm[5:0]
+                        instr = new Instruction(instr16.rd, 0, sext_imm6) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = p3;
+                                pc += 2;
+                            }
+                        };
+                        break;
                     case 0b011:
-                        if (instr16.rd == 2) { // c.addi16sp Expansion:addi x2,x2, nzimm[9:4]
+                        if (instr16.rd == 2) {
+                            // c.addi16sp Expansion:addi x2,x2, nzimm[9:4]
                             temp = ((instruction >> 2) & (1 << 4)) | ((instruction << 3) & (1 << 5)) | ((instruction << 1) & (1 << 6)) | ((instruction << 4) & (0x3 << 7)) | ((instruction >> 3) & (1 << 9));
                             int sext_imm10 = signed_extend(temp, 10);
-                            reg[2] += sext_imm10;
+                            instr = new Instruction(0, 0, sext_imm10) {
+                                @Override
+                                public void execute() {
+                                    reg[2] += p3;
+                                    pc += 2;
+                                }
+                            };
                         } else { //c.lui Expansion: lui rd,nzuimm[17:12]
                             int sext_imm18 = signed_extend(instr16.imm18, 18);
-                            reg[instr16.rd] = sext_imm18;
+                            instr = new Instruction(instr16.rd, 0, sext_imm18) {
+                                @Override
+                                public void execute() {
+                                    reg[p1] = p3;
+                                    pc += 2;
+                                }
+                            };
                         }
                         break;
                     case 0b100:
@@ -122,47 +180,117 @@ public class CPU {
                             case 0b00:
                                 // c.srli Expansion:srli rd’,rd’,shamt[5:0]
                                 int ShiftAmt = instr16.imm6 & 0x1F;
-                                reg[8 + instr16.rs1s] = reg[8 + instr16.rs1s] >>> ShiftAmt;
+                                instr = new Instruction(0, instr16.rs1s, ShiftAmt) {
+                                    @Override
+                                    public void execute() {
+                                        reg[8 + p2] = reg[8 + p2] >>> p3;
+                                        pc += 2;
+                                    }
+                                };
                                 break;
                             case 0b01:
                                 // c.srai
                                 ShiftAmt = instr16.imm6 & 0x1F;
-                                reg[8 + instr16.rs1s] = reg[8 + instr16.rs1s] >>> ShiftAmt;
+                                instr = new Instruction(0, instr16.rs1s, ShiftAmt) {
+                                    @Override
+                                    public void execute() {
+                                        reg[8 + p2] = reg[8 + p2] >>> p3;
+                                        pc += 2;
+                                    }
+                                };
+//                                reg[8 + instr16.rs1s] = reg[8 + instr16.rs1s] >>> ShiftAmt;
                                 break;
                             case 0b10:
+                                // c.andi Expansion:andi rd’,rd’,imm[5:0]
                                 imm = signed_extend(instr16.imm6, 6);
-                                reg[8 + instr16.rs1s] &= imm;
-                                break; // c.andi Expansion:andi rd’,rd’,imm[5:0]
+                                instr = new Instruction(0, instr16.rs1s, imm) {
+                                    @Override
+                                    public void execute() {
+                                        reg[8 + p2] &= p3;
+                                        pc += 2;
+                                    }
+                                };
+                                break;
                             case 0b11:
                                 switch ((instruction >> 5) & 3) {
                                     case 0b00:
-                                        reg[8 + instr16.rs1s] -= reg[8 + instr16.rs2s];
-                                        break; // c.sub
+                                        // c.sub
+                                        instr = new Instruction(instr16.rs1s, instr16.rs2s, 0) {
+                                            @Override
+                                            public void execute() {
+                                                reg[8 + p1] -= reg[8 + p2];
+                                                pc += 2;
+                                            }
+                                        };
+                                        break;
                                     case 0b01:
-                                        reg[8 + instr16.rs1s] ^= reg[8 + instr16.rs2s];
-                                        break; // c.xor
+                                        // c.xor
+                                        instr = new Instruction(instr16.rs1s, instr16.rs2s, 0) {
+                                            @Override
+                                            public void execute() {
+                                                reg[8 + p1] ^= reg[8 + p2];
+                                                pc += 2;
+                                            }
+                                        };
+                                        break;
                                     case 0b10:
-                                        reg[8 + instr16.rs1s] |= reg[8 + instr16.rs2s];
-                                        break; // c.or
+                                        // c.or
+                                        instr = new Instruction(instr16.rs1s, instr16.rs2s, 0) {
+                                            @Override
+                                            public void execute() {
+                                                reg[8 + p1] |= reg[8 + p2];
+                                                pc += 2;
+                                            }
+                                        };
+                                        break;
                                     case 0b11:
-                                        reg[8 + instr16.rs1s] &= reg[8 + instr16.rs2s];
-                                        break; // c.and
+                                        // c.and
+                                        instr = new Instruction(instr16.rs1s, instr16.rs2s, 0) {
+                                            @Override
+                                            public void execute() {
+                                                reg[8 + p1] &= reg[8 + p2];
+                                                pc += 2;
+                                            }
+                                        };
+                                        break;
                                 }
                                 break;
                         }
                         break;
                     case 0b101:// c.j Expansion:jal x0,offset[11:1]
                         imm = signed_extend(instr16.imm12, 12);
-                        pc += imm;
-                        bflag = 1;
+                        instr = new Instruction(0, 0, imm) {
+                            @Override
+                            public void execute() {
+                                pc += p3;
+                            }
+                        };
                         break;
                     case 0b110: // c.beqz Expansion: beq rs1’,x0,offset[8:1]
+                        imm = signed_extend(instr16.imm9, 9);
+                        instr = new Instruction(0, instr16.rs1s, imm) {
+                            @Override
+                            public void execute() {
+                                if (reg[8 + p2] == 0) {
+                                    pc += p3;
+                                } else {
+                                    pc += 2;
+                                }
+                            }
+                        };
+                        break;
                     case 0b111: // c.bnez Expansion: bne rs1’,x0,offset[8:1]
                         imm = signed_extend(instr16.imm9, 9);
-                        if (instr16.funct3 == 6 && reg[8 + instr16.rs1s] == 0 || instr16.funct3 == 7 && reg[8 + instr16.rs1s] != 0) {
-                            pc += imm;
-                            bflag = 1;
-                        }
+                        instr = new Instruction(0, instr16.rs1s, imm) {
+                            @Override
+                            public void execute() {
+                                if (reg[8 + p2] != 0) {
+                                    pc += p3;
+                                } else {
+                                    pc += 2;
+                                }
+                            }
+                        };
                         break;
                     default:
                         break;
@@ -171,41 +299,78 @@ public class CPU {
             case 0b10:
                 switch (instr16.funct3) {
                     case 0b000:
-                        reg[instr16.rd] <<= instr16.imm6;
-                        break; // c.slli
+                        // c.slli
+                        instr = new Instruction(instr16.rd, 0, instr16.imm6) {
+                            @Override
+                            public void execute() {
+                                reg[p1] <<= p3;
+                                pc += 2;
+                            }
+                        };
+                        break;
                     case 0b010: // c.lwsp
-                        reg[instr16.rd] = SYS_BUS.getWord(reg[2] + instr16.lwspimm8); // c.lwsp
+                        instr = new Instruction(instr16.rd, 0, instr16.lwspimm8) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = SYS_BUS.getWord(reg[2] + p3); // c.lwsp
+                                pc += 2;
+                            }
+                        };
                         break;
                     case 0b100:
                         if ((instruction & (1 << 12)) == 0) {
                             if (instr16.rs2 == 0) { // c.jr Expansion:jalr x0,rs1,0
-                                pc = reg[instr16.rs1];
-                                bflag = 1;
+                                instr = new Instruction(0, instr16.rs1, 0) {
+                                    @Override
+                                    public void execute() {
+                                        pc = reg[p2];
+                                    }
+                                };
                             } else { // c.mv Expansion:add rd, x0, rs2
-                                reg[instr16.rd] = reg[instr16.rs2];
+                                instr = new Instruction(instr16.rd, instr16.rs2, 0) {
+                                    @Override
+                                    public void execute() {
+                                        reg[p1] = reg[p2];
+                                        pc += 2;
+                                    }
+                                };
                             }
                         } else {
                             if (instr16.rs1 == 0 && instr16.rs2 == 0) { // c.ebreak;
                             } else if (instr16.rs2 == 0) { // c.jalr
-                                temp = pc + 2;
-                                pc = reg[instr16.rs1];
-                                reg[1] = temp;
-                                bflag = 1;
+                                instr = new Instruction(0, instr16.rs1, 0) {
+                                    @Override
+                                    public void execute() {
+                                        reg[1] = pc + 2;
+                                        pc = reg[p2];
+                                    }
+                                };
                             } else { // c.add Expansion:add rd,rd,rs2
-                                reg[instr16.rd] += reg[instr16.rs2];
+                                instr = new Instruction(instr16.rd, instr16.rs2, 0) {
+                                    @Override
+                                    public void execute() {
+                                        reg[p1] += reg[p2];
+                                        pc += 2;
+                                    }
+                                };
                             }
                         }
                         break;
                     case 0b110: // c.swsp Expansion: sw rs2,offset[7:2](x2)
-                        SYS_BUS.storeWord(reg[2] + instr16.swspimm8, reg[instr16.rs2]);
+                        instr = new Instruction(0, instr16.rs2, instr16.swspimm8) {
+                            @Override
+                            public void execute() {
+                                SYS_BUS.storeWord(reg[2] + p3, reg[p2]);
+                                pc += 2;
+                            }
+                        };
                         break;
                     default:
                         break;
                 }
                 break;
         }
-        pc += (bflag == 1 ? 0 : 2);
-        return true;
+        return instr;
     }
 
     private int signed_extend(int a, int size) {

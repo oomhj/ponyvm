@@ -1,6 +1,6 @@
 package com.ponyvm.soc.core;
 
-public class Instruction16 extends Instruction {
+public class Instruction16 {
     int instruction, opcode, rd, rs1, rs2, rs1s, rs2s, rds, imm6, imm7, imm8, lwspimm8, swspimm8, imm9, imm10, imm12, imm18, funct2, funct3;
 
     public Instruction16(int instruction) {

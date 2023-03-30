@@ -1,6 +1,6 @@
 package com.ponyvm.soc.core;
 
-public class Instruction32 extends Instruction {
+public class Instruction32 {
     int instruction, opcode, rd, rs1, rs2, funct3, funct7, imm;
     boolean noRd = false;
     boolean sType = false;
