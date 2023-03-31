@@ -57,11 +57,11 @@ public class CPU {
         if (instruction == null) {
             int instrCode = SYS_BUS.getWord(pc);
             if ((instrCode & 0x03) == 3) {
-                executeInstruction32(instrCode);
+                instruction = decodeInstruction32(instrCode);
             } else {
                 instruction = decodeInstruction16(instrCode & 0xFFFF);
             }
-            if (instruction!=null){
+            if (instruction != null) {
                 I_CACHE.put(pc, instruction);
             }
         }
@@ -378,241 +378,464 @@ public class CPU {
         return (a >> (size - 1) & 1) == 1 ? (a | ~((1 << size) - 1)) : a;
     }
 
-    public boolean executeInstruction32(int instruction) {
+    public Instruction decodeInstruction32(int instrCode) {
+        Instruction instruction = null;
         prevPc = pc;
-        Instruction32 inst = new Instruction32(instruction);
+        Instruction32 inst = new Instruction32(instrCode);
         String instAddr = Integer.toUnsignedString(pc, 16);
 //        打印指令操作码
 //        System.out.println(instAddr + ":" + Integer.toUnsignedString(instruction, 16) + ":" + inst.toAssemblyString());
         switch (inst.opcode) {
             // R-type instructions 包含 RVI RVM
             case 0b0110011: // ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND /MUL /MULH /MULHSU /MULHU /DIV /DIVU /REM /REMU
-                rType(inst);
+                instruction = rType(inst);
                 break;
 
             // J-type instruction
             case 0b1101111: //JAL
-                reg[inst.rd] = (pc + 4); // Store address of next instruction in bytes
-                pc += inst.imm;
+                instruction = new Instruction(inst.rd, 0, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = (pc + 4); // Store address of next instruction in bytes
+                        pc += p3;
+                    }
+                };
                 break;
 
             // I-type instructions
             case 0b1100111: // JALR
-                reg[inst.rd] = (pc + 4);
-                pc = (reg[inst.rs1] + inst.imm);
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = (pc + 4);
+                        pc = (reg[p2] + p3);
+                    }
+                };
                 break;
             case 0b0000011: // LB / LH / LW / LBU / LHU
-                iTypeLoad(inst);
+                instruction = iTypeLoad(inst);
                 break;
             case 0b0010011: // ADDI / SLTI / SLTIU / XORI / ORI / ANDI / SLLI / SRLI / SRAI
-                iTypeInteger(inst);
+                instruction = iTypeInteger(inst);
                 break;
             case 0b1110011: // ECALL
-                iTypeEcall();
+                instruction = iTypeEcall();
                 break;
 
             //S-type instructions
             case 0b0100011: //SB / SH / SW
-                sType(inst);
+                instruction = sType(inst);
                 break;
 
             //B-type instructions
             case 0b1100011: // BEQ / BNE / BLT / BGE / BLTU / BGEU
-                bType(inst);
+                instruction = bType(inst);
                 break;
 
             //U-type instructions
             case 0b0110111: //LUI
-                reg[inst.rd] = inst.imm;
-                pc += 4;
+                instruction = new Instruction(inst.rd, 0, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = p3;
+                        pc += 4;
+                    }
+                };
+
                 break;
             case 0b0010111: //AUIPC
-                reg[inst.rd] = pc + inst.imm;
-                pc += 4;
+                instruction = new Instruction(inst.rd, 0, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = pc + p3;
+                        pc += 4;
+                    }
+                };
                 break;
         }
         reg[0] = 0; // x0 must always be 0
-        return this.stop;
+        return instruction;
     }
 
     /**
      * r-Type instructions:
      * ADD / SUB / SLL / SLT / SLTU / XOR / SRL / SRA / OR / AND
      */
-    private void rType(Instruction32 inst) {
+    private Instruction rType(Instruction32 inst) {
+        Instruction instruction = null;
         switch (inst.funct3) {
             case 0b000: // ADD / SUB /MUL
                 switch (inst.funct7) {
                     case 0b0000000: // ADD
-                        reg[inst.rd] = reg[inst.rs1] + reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] + reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0100000: // SUB
-                        reg[inst.rd] = reg[inst.rs1] - reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] - reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0000001: // MUL 有符号*有符号 低32位
-                        reg[inst.rd] = reg[inst.rs1] * reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] * reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
             case 0b001: // SLL /MULH
                 switch (inst.funct7) {
                     case 0b0000000: // SLL
-                        reg[inst.rd] = reg[inst.rs1] << reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] << reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0000001: // MULH 有符号*有符号 高32位
-                        reg[inst.rd] = (int) (((long) reg[inst.rs1]) * reg[inst.rs2] >> 32);
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = (int) (((long) reg[p2]) * reg[p3] >> 32);
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
             case 0b010://SLT MULHSU
                 switch (inst.funct7) {
                     case 0b0000000: // SLT
-                        if (reg[inst.rs1] < reg[inst.rs2]) reg[inst.rd] = 1;
-                        else reg[inst.rd] = 0;
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                if (reg[p2] < reg[p3]) reg[p1] = 1;
+                                else reg[p1] = 0;
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0000001: // MULHSU 有符号*无符号 高32位
-                        reg[inst.rd] = (int) ((reg[inst.rs1] * Integer.toUnsignedLong(reg[inst.rs2])) >> 32);
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = (int) ((reg[p2] * Integer.toUnsignedLong(reg[p3])) >> 32);
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
             case 0b011: // SLTU
                 switch (inst.funct7) {
                     case 0b0000000: //SLTU
-                        if (Integer.toUnsignedLong(reg[inst.rs1]) < Integer.toUnsignedLong(reg[inst.rs2]))
-                            reg[inst.rd] = 1;
-                        else reg[inst.rd] = 0;
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                if (Integer.toUnsignedLong(reg[p2]) < Integer.toUnsignedLong(reg[p3])) reg[p1] = 1;
+                                else reg[p1] = 0;
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0000001: // MULHU 无符号*无符号 高32位
-                        reg[inst.rd] = (int) ((Integer.toUnsignedLong(reg[inst.rs1]) * Integer.toUnsignedLong(reg[inst.rs2])) >> 32);
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = (int) ((Integer.toUnsignedLong(reg[p2]) * Integer.toUnsignedLong(reg[p3])) >> 32);
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
             case 0b100: // XOR /DIV
                 switch (inst.funct7) {
                     case 0b0000000: //XOR
-                        reg[inst.rd] = reg[inst.rs1] ^ reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] ^ reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0000001: // DIV
-                        reg[inst.rd] = reg[inst.rs1] / reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] / reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
             case 0b101: // SRL / SRA /DIV
                 switch (inst.funct7) {
                     case 0b0000000: // SRL
-                        reg[inst.rd] = reg[inst.rs1] >>> reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] >>> reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0100000: // SRA
-                        reg[inst.rd] = reg[inst.rs1] >> reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] >> reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0000001: // DIVU
-                        reg[inst.rd] = (int) ((Integer.toUnsignedLong(reg[inst.rs1]) / Integer.toUnsignedLong(reg[inst.rs2])));
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = (int) ((Integer.toUnsignedLong(reg[p2]) / Integer.toUnsignedLong(reg[p3])));
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
             case 0b110: // OR
                 switch (inst.funct7) {
                     case 0b0000000: // OR
-                        reg[inst.rd] = reg[inst.rs1] | reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] | reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0000001: // REM
-                        reg[inst.rd] = reg[inst.rs1] % reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] % reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
             case 0b111: // AND /REMU
                 switch (inst.funct7) {
                     case 0b0000000: // AND
-                        reg[inst.rd] = reg[inst.rs1] & reg[inst.rs2];
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] & reg[p3];
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0000001: // REMU
-                        reg[inst.rd] = (int) ((Integer.toUnsignedLong(reg[inst.rs1]) % Integer.toUnsignedLong(reg[inst.rs2])));
+                        instruction = new Instruction(inst.rd, inst.rs1, inst.rs2) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = (int) ((Integer.toUnsignedLong(reg[p2]) % Integer.toUnsignedLong(reg[p3])));
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
         }
-        pc += 4;
+        return instruction;
     }
 
     /**
      * i-Type load instructions:
      * LB / LH / LW / LBU / LHU
      */
-    private void iTypeLoad(Instruction32 inst) {
-        int addr = reg[inst.rs1] + inst.imm; // Byte address
+    private Instruction iTypeLoad(Instruction32 inst) {
+        Instruction instruction = null;
+//        int addr = reg[inst.rs1] + inst.imm; // Byte address
 
         switch (inst.funct3) {
             case 0b000: // LB
-                reg[inst.rd] = SYS_BUS.getByte(addr);
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = SYS_BUS.getByte(reg[p2] + p3);
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b001: // LH
-                reg[inst.rd] = SYS_BUS.getHalfWord(addr);
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = SYS_BUS.getHalfWord(reg[p2] + p3);
+                        pc += 4;
+                    }
+                };
+
                 break;
             case 0b010: // LW
-                reg[inst.rd] = SYS_BUS.getWord(addr);
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = SYS_BUS.getWord(reg[p2] + p3);
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b100: // LBU
-                reg[inst.rd] = SYS_BUS.getByte(addr) & 0xFF; //Remove sign bits
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = SYS_BUS.getByte(reg[p2] + p3) & 0xFF; //Remove sign bits
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b101: // LHU
-                reg[inst.rd] = SYS_BUS.getHalfWord(addr) & 0xFFFF;
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = SYS_BUS.getHalfWord(reg[p2] + p3) & 0xFFFF;
+                        pc += 4;
+                    }
+                };
                 break;
             default:
                 break;
         }
-        pc += 4;
+        return instruction;
     }
 
     /**
      * I-type integer instructions:
      * ADDI / SLTI / SLTIU / XORI / ORI / ANDI / SLLI / SRLI / SRAI
      */
-    private void iTypeInteger(Instruction32 inst) {
+    private Instruction iTypeInteger(Instruction32 inst) {
+        Instruction instruction = null;
         switch (inst.funct3) {
             case 0b000: // ADDI
-                reg[inst.rd] = reg[inst.rs1] + inst.imm;
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = reg[p2] + p3;
+                        pc += 4;
+                    }
+                };
+
                 break;
             case 0b010: // SLTI
-                if (reg[inst.rs1] < inst.imm) reg[inst.rd] = 1;
-                else reg[inst.rd] = 0;
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        if (reg[p2] < p3) reg[p1] = 1;
+                        else reg[p1] = 0;
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b011: // SLTIU
-                if (Integer.toUnsignedLong(reg[inst.rs1]) < Integer.toUnsignedLong(inst.imm)) reg[inst.rd] = 1;
-                else reg[inst.rd] = 0;
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        if (Integer.toUnsignedLong(reg[p2]) < Integer.toUnsignedLong(p3)) reg[p1] = 1;
+                        else reg[p1] = 0;
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b100: // XORI
-                reg[inst.rd] = reg[inst.rs1] ^ inst.imm;
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = reg[p2] ^ p3;
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b110: // ORI
-                reg[inst.rd] = reg[inst.rs1] | inst.imm;
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = reg[p2] | p3;
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b111: // ANDI
-                reg[inst.rd] = reg[inst.rs1] & inst.imm;
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = reg[p2] & p3;
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b001: // SLLI
-                reg[inst.rd] = reg[inst.rs1] << inst.imm;
+                instruction = new Instruction(inst.rd, inst.rs1, inst.imm) {
+                    @Override
+                    public void execute() {
+                        reg[p1] = reg[p2] << p3;
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b101: // SRLI / SRAI
                 int ShiftAmt = inst.imm & 0x1F; // The amount of shifting done by SRLI or SRAI
                 switch (inst.funct7) {
                     case 0b0000000: // SRLI
-                        reg[inst.rd] = reg[inst.rs1] >>> ShiftAmt;
+                        instruction = new Instruction(inst.rd, inst.rs1, ShiftAmt) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] >>> p3;
+                                pc += 4;
+                            }
+                        };
                         break;
                     case 0b0100000: // SRAI
-                        reg[inst.rd] = reg[inst.rs1] >> ShiftAmt;
+                        instruction = new Instruction(inst.rd, inst.rs1, ShiftAmt) {
+                            @Override
+                            public void execute() {
+                                reg[p1] = reg[p2] >> p3;
+                                pc += 4;
+                            }
+                        };
                         break;
                 }
                 break;
         }
-        pc += 4;
+        return instruction;
     }
 
     /**
      * i-Type ECALL instructions
      */
-    private void iTypeEcall() {
-        this.stop = true;
-        System.out.println("ECALL x10:" + reg[10] + ",x11:" + reg[11]);
+    private Instruction iTypeEcall() {
+        return new Instruction(0, 0, 0) {
+            @Override
+            public void execute() {
+                stop = true;
+                System.out.println("ECALL x10:" + reg[10] + ",x11:" + reg[11]);
+            }
+        };
 //        switch (reg[10]) {
 //            case 0:     // print_int
 //                System.out.println("ECALL x10" + reg[10] + ",x11" + reg[11]);
@@ -641,7 +864,6 @@ public class CPU {
 //                System.out.println("ECALL " + reg[10] + " not implemented");
 //                break;
 //        }
-        this.stop = true;
 //        pc += 4;
     }
 
@@ -649,47 +871,98 @@ public class CPU {
      * S-type instructions:
      * SB / SH / SW
      */
-    private void sType(Instruction32 inst) {
-        int addr = reg[inst.rs1] + inst.imm;
+    private Instruction sType(Instruction32 inst) {
+        Instruction instruction = null;
+//        int addr = reg[inst.rs1] +inst.imm;
         switch (inst.funct3) {
             case 0b000: // SB
-                SYS_BUS.storeByte(addr, (byte) reg[inst.rs2]);
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        SYS_BUS.storeByte(reg[p1] + p3, (byte) reg[p2]);
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b001: // SH
-                SYS_BUS.storeHalfWord(addr, (short) reg[inst.rs2]);
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        SYS_BUS.storeHalfWord(reg[p1] + p3, (short) reg[p2]);
+                        pc += 4;
+                    }
+                };
                 break;
             case 0b010: // SW
-                SYS_BUS.storeWord(addr, reg[inst.rs2]);
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        SYS_BUS.storeWord(reg[p1] + p3, reg[p2]);
+                        pc += 4;
+                    }
+                };
                 break;
         }
-        pc += 4;
+        return instruction;
     }
 
     /**
      * B-type instructions:
      * BEQ / BNE / BLT / BGE / BLTU / BGEU
      */
-    private void bType(Instruction32 inst) {
-        int Imm = inst.imm;
+    private Instruction bType(Instruction32 inst) {
+        Instruction instruction = null;
         switch (inst.funct3) {
             case 0b000: // BEQ
-                pc += (reg[inst.rs1] == reg[inst.rs2]) ? Imm : 4;
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        pc += (reg[p1] == reg[p2]) ? p3 : 4;
+                    }
+                };
                 break;
             case 0b001: // BNE
-                pc += (reg[inst.rs1] != reg[inst.rs2]) ? Imm : 4;
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        pc += (reg[p1] != reg[p2]) ? p3 : 4;
+                    }
+                };
+
                 break;
             case 0b100: // BLT
-                pc += (reg[inst.rs1] < reg[inst.rs2]) ? Imm : 4;
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        pc += (reg[p1] < reg[p2]) ? p3 : 4;
+                    }
+                };
                 break;
             case 0b101: // BGE
-                pc += (reg[inst.rs1] >= reg[inst.rs2]) ? Imm : 4;
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        pc += (reg[p1] >= reg[p2]) ? p3 : 4;
+                    }
+                };
                 break;
             case 0b110: //BLTU
-                pc += (Integer.toUnsignedLong(reg[inst.rs1]) < Integer.toUnsignedLong(reg[inst.rs2])) ? Imm : 4;
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        pc += (Integer.toUnsignedLong(reg[p1]) < Integer.toUnsignedLong(reg[p2])) ? p3 : 4;
+                    }
+                };
                 break;
             case 0b111: //BLGEU
-                pc += (Integer.toUnsignedLong(reg[inst.rs1]) >= Integer.toUnsignedLong(reg[inst.rs2])) ? Imm : 4;
+                instruction = new Instruction(inst.rs1, inst.rs2, inst.imm) {
+                    @Override
+                    public void execute() {
+                        pc += (Integer.toUnsignedLong(reg[p1]) >= Integer.toUnsignedLong(reg[p2])) ? p3 : 4;
+                    }
+                };
                 break;
         }
+        return instruction;
     }
 }
