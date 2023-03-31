@@ -9,7 +9,7 @@ public class CPU {
     private Cache<Instruction> I_CACHE; //指令缓存
 
     int[] reg = new int[32];        // 寄存器
-    float[] fdreg = new float[32];  //浮点寄存器
+    float[] fdreg = new float[32];  //浮点寄存器 暂未实现浮点指令集
     int[] csr = new int[0x1000];
     private Addressable SYS_BUS;    // 系统总线
     private boolean stop = true;
@@ -22,22 +22,9 @@ public class CPU {
         I_CACHE = new Cache<>(16 * 1024);//16K条指令缓存（相当于64KB的机器指令）
     }
 
-    public void poweron() {
-        this.stop = false;
-    }
-
     public boolean isRunning() {
         return !this.stop;
     }
-
-//    private Instruction InstructionDecode(int pc) {
-//        Instruction instr = I_CACHE.get(pc);
-//        if (instr == null) {
-//            instr = new Instruction(SYS_BUS.getWord(pc));
-//            I_CACHE.put(pc, instr);
-//        }
-//        return instr;
-//    }
 
     public int launch(int EntryAddr) {
         pc = EntryAddr;
