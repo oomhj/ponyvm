@@ -6,7 +6,7 @@ mvn compile assembly:single
 
 ponyvm-rv32i 运行
 
-java -jar PonyVM-0.2.5.jar -f pi.bin
+java -jar PonyVM-0.3.0.jar -f pi-imc.bin
 
 命令行 参数
 
@@ -14,4 +14,4 @@ java -jar PonyVM-0.2.5.jar -f pi.bin
 
 C样例编译 采用了ESP32C3的工具链 riscv32-esp-elf-gcc
 
-riscv32-esp-elf-gcc -march=rv32imc loop.s -o loop.bin
+riscv32-esp-elf-gcc -march=rv32imc pi.c -o pi-imc.bin
